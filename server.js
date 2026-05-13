@@ -413,6 +413,24 @@ app.get("/api/forwarded/:id/file", auth, (req, res) => {
 /* ══════════════════════════════════════════════════════════
    HEALTH + SPA FALLBACK + START
    ══════════════════════════════════════════════════════════ */
+// One-time admin endpoint to wipe snapshot and re-seed (remove after first use)
+app.post("/api/admin/reset-db", async (req, res) => {
+  const { secret } = req.body;
+  if (secret !== "must-reset-2026") return res.status(403).json({ error: "Invalid secret" });
+  try {
+    if (USE_PG) { await pgPool.query(`DELETE FROM ${PG_TABLE} WHERE id = 1`); }
+    // Re-create fresh database
+    const SQL = await initSqlJs();
+    db = new SQL.Database();
+    const schema = fs.readFileSync(path.join(__dirname, "db", "schema.sql"), "utf-8");
+    db.exec(schema);
+    db.exec("PRAGMA foreign_keys = ON;");
+    seedDefaults();
+    saveDb();
+    res.json({ success: true, message: "Database reset and re-seeded. All passwords are must2026." });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get("/api/health", async (req, res) => {
   let pgInfo = { enabled: USE_PG };
   if (USE_PG) {
