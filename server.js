@@ -31,9 +31,11 @@ if (USE_PG) {
   pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
   pgPool.on("error", err => console.error("PG pool error:", err));
 }
-async function pgEnsureSchema() { if (!USE_PG) return; await pgPool.query(`CREATE TABLE IF NOT EXISTS db_snapshot (id INT PRIMARY KEY DEFAULT 1, data BYTEA NOT NULL, byte_size INT, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), CONSTRAINT db_snapshot_single_row CHECK (id = 1))`); }
-async function pgLoadSnapshot() { if (!USE_PG) return null; const r = await pgPool.query("SELECT data, byte_size, updated_at FROM db_snapshot WHERE id = 1"); return r.rows.length ? r.rows[0] : null; }
-async function pgWriteSnapshot(buf) { if (!USE_PG) return; await pgPool.query(`INSERT INTO db_snapshot (id, data, byte_size, updated_at) VALUES (1, $1, $2, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, byte_size = EXCLUDED.byte_size, updated_at = NOW()`, [buf, buf.length]); }
+// Use a unique table name so this app can share a PG instance with the HR tracker
+const PG_TABLE = 'db_snapshot_academic';
+async function pgEnsureSchema() { if (!USE_PG) return; await pgPool.query(`CREATE TABLE IF NOT EXISTS ${PG_TABLE} (id INT PRIMARY KEY DEFAULT 1, data BYTEA NOT NULL, byte_size INT, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), CONSTRAINT ${PG_TABLE}_single_row CHECK (id = 1))`); }
+async function pgLoadSnapshot() { if (!USE_PG) return null; const r = await pgPool.query(`SELECT data, byte_size, updated_at FROM ${PG_TABLE} WHERE id = 1`); return r.rows.length ? r.rows[0] : null; }
+async function pgWriteSnapshot(buf) { if (!USE_PG) return; await pgPool.query(`INSERT INTO ${PG_TABLE} (id, data, byte_size, updated_at) VALUES (1, $1, $2, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, byte_size = EXCLUDED.byte_size, updated_at = NOW()`, [buf, buf.length]); }
 let pgFlushTimer = null, pgFlushInFlight = false, pgFlushQueued = false;
 async function flushToPg() { if (!USE_PG || !db) return; if (pgFlushInFlight) { pgFlushQueued = true; return; } pgFlushInFlight = true; try { await pgWriteSnapshot(Buffer.from(db.export())); } catch (e) { console.error("⚠️ PG snapshot write failed:", e.message); } finally { pgFlushInFlight = false; if (pgFlushQueued) { pgFlushQueued = false; scheduleFlush(); } } }
 function scheduleFlush() { if (!USE_PG || pgFlushTimer) return; pgFlushTimer = setTimeout(() => { pgFlushTimer = null; flushToPg(); }, 800); }
@@ -414,7 +416,7 @@ app.get("/api/forwarded/:id/file", auth, (req, res) => {
 app.get("/api/health", async (req, res) => {
   let pgInfo = { enabled: USE_PG };
   if (USE_PG) {
-    try { const r = await pgPool.query("SELECT byte_size, updated_at FROM db_snapshot WHERE id = 1"); pgInfo.hasSnapshot = r.rows.length > 0; if (r.rows.length > 0) { pgInfo.byteSize = r.rows[0].byte_size; pgInfo.updatedAt = r.rows[0].updated_at; } } catch (e) { pgInfo.error = e.message; }
+    try { const r = await pgPool.query(`SELECT byte_size, updated_at FROM ${PG_TABLE} WHERE id = 1`); pgInfo.hasSnapshot = r.rows.length > 0; if (r.rows.length > 0) { pgInfo.byteSize = r.rows[0].byte_size; pgInfo.updatedAt = r.rows[0].updated_at; } } catch (e) { pgInfo.error = e.message; }
   }
   res.json({ status: "ok", db: { postgres: pgInfo, persistent: USE_PG || !!process.env.DB_DIR }, uptime: process.uptime() });
 });
