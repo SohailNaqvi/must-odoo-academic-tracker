@@ -1,946 +1,497 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MUST — Odoo Academic Implementation Tracker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MUST — Odoo Academic Implementation Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+  </style>
 </head>
 <body class="bg-gray-50">
-    <input type="hidden" id="__app_token" value="">
-    
-    <!-- Login Screen -->
-    <div id="loginScreen" class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
-        <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-            <div class="flex justify-center mb-6">
-                <img src="https://must.edu.pk/wp-content/uploads/2023/06/MUST-Logo-1.png" alt="MUST Logo" class="h-16" onerror="this.style.display='none'">
-            </div>
-            <h1 class="text-2xl font-bold text-center text-gray-900 mb-2">MUST — Odoo Academic Implementation Tracker</h1>
-            <p class="text-center text-gray-600 mb-6">Multan University of Science & Technology</p>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">User</label>
-                <select id="loginUsername" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option value="">Select a user...</option>
-                </select>
-            </div>
-            
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                <input type="password" id="loginPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
-            
-            <button onclick="handleLogin()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition">
-                Sign In
-            </button>
-            
-            <p class="text-center text-sm text-gray-600 mt-4">Available accounts are shown above</p>
+<input type="hidden" id="__app_token" value="">
+<div id="root"></div>
+<script>
+/* ══════════════════════════════════════════════════════════
+   MUST Odoo Academic Tracker — Single-file vanilla JS app
+   ══════════════════════════════════════════════════════════ */
+const ROLES = {
+  admin:     { label:'System Administrator',        color:'#6366f1' },
+  registrar: { label:'Registrar',                   color:'#059669' },
+  coe:       { label:'Controller of Examinations',  color:'#2563eb' },
+  vc:        { label:'Vice Chancellor',             color:'#d97706' },
+  dean:      { label:'Dean',                        color:'#7c3aed' }
+};
+const CATS = {
+  policy:    { bg:'#fffbeb', color:'#d97706', border:'#fde68a', label:'Policy' },
+  doc:       { bg:'#eff6ff', color:'#2563eb', border:'#bfdbfe', label:'Document' },
+  odoo:      { bg:'#ecfdf5', color:'#059669', border:'#a7f3d0', label:'Odoo Config' },
+  action:    { bg:'#fef2f2', color:'#dc2626', border:'#fecaca', label:'Immediate Action' },
+  authority: { bg:'#f9fafb', color:'#6b7280', border:'#e5e7eb', label:'Approval Authority' }
+};
+const STATUSES = {
+  'done':        { bg:'#ecfdf5', color:'#059669', border:'#a7f3d0', label:'Completed',   icon:'✓' },
+  'in-progress': { bg:'#eff6ff', color:'#2563eb', border:'#bfdbfe', label:'In Progress', icon:'◐' },
+  'not-started': { bg:'#f9fafb', color:'#6b7280', border:'#e5e7eb', label:'Not Started', icon:'○' }
+};
+const PHASE_COLORS = ['#ef4444','#f59e0b','#f59e0b','#3b82f6','#3b82f6','#10b981','#10b981','#3b82f6','#3b82f6','#10b981','#10b981','#6b7280','#6b7280'];
+const CAN_EDIT = ['admin','registrar','coe'];
+
+let token = null, user = null, phases = [], progress = {}, forwarded = [], users = [], openPhase = -1, activeTab = 'roadmap';
+
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+async function api(url, opts={}) {
+  const h = {'Content-Type':'application/json',...(opts.headers||{})};
+  if (token) h['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(url, {...opts, headers:h});
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+/* ══════ RENDER: LOGIN ══════ */
+async function renderLogin() {
+  let usersHtml = '<option value="">Select a user...</option>';
+  try {
+    const d = await fetch('/api/users/public').then(r=>r.json());
+    (d.users||[]).forEach(u => {
+      const rl = ROLES[u.role] ? ROLES[u.role].label : u.role;
+      usersHtml += `<option value="${esc(u.username)}">${esc(u.display_name)} (${esc(rl)})</option>`;
+    });
+  } catch(e) {}
+
+  document.getElementById('root').innerHTML = `
+    <div class="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
+      <div class="w-full max-w-md">
+        <div class="text-center mb-6">
+          <img src="https://must.edu.pk/wp-content/uploads/2023/06/MUST-Logo-1.png" class="h-20 mx-auto mb-3" onerror="this.style.display='none'">
+          <h1 class="text-base font-bold text-gray-900">Odoo Academic Implementation Tracker</h1>
+          <p class="text-sm text-gray-500">Multan University of Science and Technology</p>
         </div>
+        <form id="loginForm" class="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 space-y-4">
+          <div>
+            <label class="text-sm font-medium text-gray-700 block mb-1">Username</label>
+            <select id="loginUser" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm">${usersHtml}</select>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700 block mb-1">Password</label>
+            <input type="password" id="loginPass" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm" placeholder="Enter password">
+          </div>
+          <div id="loginErr" class="hidden p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"></div>
+          <button type="submit" class="w-full py-2.5 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 flex items-center justify-center gap-2">→ Sign In</button>
+          <div class="text-xs text-gray-400 text-center pt-2 border-t border-gray-100">
+            <p class="font-medium text-gray-500 mb-1">Available accounts:</p>
+            <p>admin · registrar · coe · vc · dean</p>
+            <p class="mt-1">Default password: <span class="font-mono bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded">must2026</span></p>
+          </div>
+        </form>
+      </div>
+    </div>`;
+
+  document.getElementById('loginForm').onsubmit = async(e) => {
+    e.preventDefault();
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+    const err = document.getElementById('loginErr');
+    err.classList.add('hidden');
+    if(!u||!p){ err.textContent='Select a user and enter password'; err.classList.remove('hidden'); return; }
+    try {
+      const d = await api('/api/login',{method:'POST',body:JSON.stringify({username:u,password:p})});
+      token = d.token; user = d.user;
+      document.getElementById('__app_token').value = token;
+      if(d.user.mustChangePassword) { renderForcePassword(); }
+      else { renderApp(); }
+    } catch(ex) { err.textContent=ex.message; err.classList.remove('hidden'); }
+  };
+}
+
+/* ══════ RENDER: FORCE PASSWORD CHANGE ══════ */
+function renderForcePassword() {
+  document.getElementById('root').innerHTML = `
+    <div class="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div class="bg-white rounded-2xl shadow-xl border p-8 w-full max-w-md space-y-4">
+        <h2 class="text-lg font-bold text-gray-900">Change Your Password</h2>
+        <p class="text-sm text-gray-500">For security, you must set a new password on first login.</p>
+        <div><label class="text-sm font-medium text-gray-700 block mb-1">New Password</label>
+          <input type="password" id="pw1" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
+        <div><label class="text-sm font-medium text-gray-700 block mb-1">Confirm Password</label>
+          <input type="password" id="pw2" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
+        <div id="pwErr" class="hidden p-2 bg-red-50 text-red-700 text-sm rounded"></div>
+        <button id="pwBtn" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Set Password</button>
+      </div>
+    </div>`;
+  document.getElementById('pwBtn').onclick = async() => {
+    const p1=document.getElementById('pw1').value, p2=document.getElementById('pw2').value;
+    const err=document.getElementById('pwErr');
+    err.classList.add('hidden');
+    if(p1!==p2){err.textContent='Passwords do not match';err.classList.remove('hidden');return;}
+    if(p1.length<6){err.textContent='Min 6 characters';err.classList.remove('hidden');return;}
+    try { await api('/api/force-change-password',{method:'POST',body:JSON.stringify({newPassword:p1})}); user.mustChangePassword=false; renderApp(); }
+    catch(ex){err.textContent=ex.message;err.classList.remove('hidden');}
+  };
+}
+
+/* ══════ RENDER: MAIN APP SHELL ══════ */
+async function renderApp() {
+  const r = ROLES[user.role]||ROLES.admin;
+  const dn = user.displayName||user.display_name||user.username;
+  const isAdmin = user.role==='admin';
+  const tabs = [
+    {id:'roadmap',label:'Roadmap',icon:'📋'},
+    {id:'tasks',label:'Tasks',icon:'📨'},
+    {id:'dashboard',label:'Dashboard',icon:'📊'}
+  ];
+  if(isAdmin) tabs.push({id:'users',label:'Users',icon:'👥'});
+
+  document.getElementById('root').innerHTML = `
+    <div class="min-h-screen bg-gray-50">
+      <!-- Header -->
+      <div class="bg-white border-b shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img src="https://must.edu.pk/wp-content/uploads/2023/06/MUST-Logo-1.png" class="h-8" onerror="this.style.display='none'">
+            <div>
+              <h1 class="text-sm font-bold text-gray-900">MUST — Odoo Academic Implementation Tracker</h1>
+              <p class="text-xs text-gray-400">Multan University of Science & Technology</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg" style="background:${r.color}10">
+              <span class="text-sm font-medium" style="color:${r.color}">${esc(dn)}</span>
+              <span class="px-1.5 py-0.5 rounded text-xs font-medium" style="background:${r.color}15;color:${r.color}">${esc(r.label)}</span>
+            </div>
+            <button onclick="doLogout()" class="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg">→ Sign Out</button>
+          </div>
+        </div>
+      </div>
+      <!-- Tabs -->
+      <div class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-6 flex gap-1" id="tabBar">
+          ${tabs.map(t=>`<button onclick="switchTab('${t.id}')" data-tab="${t.id}" class="flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-medium transition ${activeTab===t.id?'border-blue-500 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}">${t.icon} ${t.label}</button>`).join('')}
+        </div>
+      </div>
+      <!-- Content -->
+      <div class="max-w-7xl mx-auto px-6 py-6" id="content"></div>
+    </div>`;
+
+  await loadData();
+}
+
+function doLogout() { token=null; user=null; phases=[]; forwarded=[]; openPhase=-1; activeTab='roadmap'; renderLogin(); }
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('#tabBar button').forEach(b => {
+    const active = b.dataset.tab === tab;
+    b.className = `flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-medium transition ${active?'border-blue-500 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}`;
+  });
+  renderContent();
+}
+
+async function loadData() {
+  try {
+    const [ph, fw] = await Promise.all([api('/api/phases'), api('/api/forwarded')]);
+    phases = ph.phases||[]; progress = ph.progress||{};
+    forwarded = fw.forwardedItems||[];
+    renderContent();
+  } catch(e) { if(e.message==='Invalid token'||e.message==='Token required') doLogout(); else console.error(e); }
+}
+
+function renderContent() {
+  const el = document.getElementById('content');
+  if(!el) return;
+  if(activeTab==='roadmap') renderRoadmap(el);
+  else if(activeTab==='tasks') renderTasks(el);
+  else if(activeTab==='dashboard') renderDashboard(el);
+  else if(activeTab==='users') renderUsers(el);
+}
+
+/* ══════ RENDER: ROADMAP TAB ══════ */
+function renderRoadmap(el) {
+  const pct = progress.pctDone||0;
+  // Stats row
+  let html = `<div class="grid grid-cols-5 gap-4 mb-6">
+    <div class="bg-white border rounded-xl p-4"><div class="text-2xl font-bold text-blue-600">${pct}%</div><div class="text-xs text-blue-500 mt-1">Overall</div><div class="text-xs text-gray-400">${phases.length} phases</div><div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 rounded-full" style="width:${pct}%"></div></div></div>
+    <div class="bg-white border rounded-xl p-4"><div class="text-2xl font-bold text-green-600">${progress.done||0}</div><div class="text-xs text-green-500 mt-1">Completed</div><div class="text-xs text-gray-400">of ${progress.total||0}</div></div>
+    <div class="bg-white border rounded-xl p-4"><div class="text-2xl font-bold text-amber-600">${progress.inProgress||0}</div><div class="text-xs text-amber-500 mt-1">In Progress</div></div>
+    <div class="bg-white border rounded-xl p-4"><div class="text-2xl font-bold text-gray-600">${progress.notStarted||0}</div><div class="text-xs text-gray-500 mt-1">Not Started</div></div>
+    <div class="bg-white border rounded-xl p-4"><div class="text-2xl font-bold text-purple-600">${forwarded.length}</div><div class="text-xs text-purple-500 mt-1">Forwarded</div><div class="text-xs text-gray-400">items</div></div>
+  </div>`;
+
+  // Legend
+  html += `<div class="flex flex-wrap items-center gap-4 text-xs text-gray-500 mb-4">`;
+  Object.entries(CATS).forEach(([k,v]) => { html += `<span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:${v.color}"></span>${v.label}</span>`; });
+  html += `</div>`;
+
+  // Phase cards
+  phases.forEach((ph,idx) => {
+    const c = PHASE_COLORS[ph.phase_number]||'#6b7280';
+    const tasks = ph.tasks||[];
+    const done = tasks.filter(t=>t.status==='done').length;
+    const inP = tasks.filter(t=>t.status==='in-progress').length;
+    const total = tasks.length;
+    const pctD = total?Math.round(done/total*100):0;
+    let sLabel='Not Started', sBg='#f9fafb', sCol='#6b7280';
+    if(done===total&&total>0){sLabel='Completed';sBg='#ecfdf5';sCol='#059669';}
+    else if(done>0||inP>0){sLabel='In Progress';sBg='#eff6ff';sCol='#2563eb';}
+    const expanded = openPhase===idx;
+
+    html += `<div class="border rounded-xl overflow-hidden bg-white mb-2" style="border-color:${expanded?c+'50':'#e5e7eb'}">
+      <button onclick="togglePhase(${idx})" class="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left">
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style="background:${c}18;color:${c}">${ph.phase_number}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-semibold text-gray-900 text-sm">${esc(ph.title)}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium" style="background:${sBg};color:${sCol};border:1px solid ${sCol}30">${sLabel}</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-0.5 truncate">${esc(ph.subtitle||'')}</p>
+        </div>
+        <span class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full flex-shrink-0">${esc(ph.timeline||'')}</span>
+        <span class="text-xs font-medium flex-shrink-0" style="color:${c}">${done}/${total}</span>
+        <div class="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden flex-shrink-0"><div class="h-full rounded-full" style="width:${pctD}%;background:${c}"></div></div>
+        <span class="text-gray-400 text-xs">${expanded?'▲':'▼'}</span>
+      </button>`;
+
+    if(expanded) {
+      html += `<div class="border-t px-5 py-4 space-y-4" style="border-color:${c}25">`;
+      // Group tasks by section
+      const sections = {};
+      tasks.forEach(t => { const s=t.section_label||'Tasks'; if(!sections[s]) sections[s]=[]; sections[s].push(t); });
+      Object.entries(sections).forEach(([sec,tks]) => {
+        html += `<div><div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">${esc(sec)} (${tks.filter(t=>t.status==='done').length}/${tks.length})</div><div class="space-y-1">`;
+        tks.forEach(t => {
+          const cat = CATS[t.category]||CATS.authority;
+          const st = STATUSES[t.status]||STATUSES['not-started'];
+          const canEdit = CAN_EDIT.includes(user.role);
+          html += `<div class="flex items-center gap-3 py-2 px-3 rounded-lg border" style="border-color:${st.border};background:${st.bg}30">
+            <span class="text-base" style="color:${st.color}">${st.icon}</span>
+            <span class="flex-1 text-sm ${t.status==='done'?'line-through text-gray-400':'text-gray-800'}">${esc(t.label)}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs" style="background:${cat.bg};color:${cat.color};border:1px solid ${cat.border}">${cat.label}</span>`;
+          if(canEdit) html += `<select onchange="changeStatus(${t.id},this.value)" class="text-xs border rounded px-1.5 py-1 bg-white"><option value="not-started" ${t.status==='not-started'?'selected':''}>Not Started</option><option value="in-progress" ${t.status==='in-progress'?'selected':''}>In Progress</option><option value="done" ${t.status==='done'?'selected':''}>Done</option></select>`;
+          if(canEdit) html += `<button onclick="showForward(${t.id},'${esc(t.label).replace(/'/g,"\\'")}')" class="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">Forward</button>`;
+          if(user.role==='admin') html += `<button onclick="resetTask(${t.id})" class="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100">Reset</button>`;
+          if(t.completed_by) html += `<span class="text-xs text-gray-400">${esc(t.completed_by)}</span>`;
+          html += `</div>`;
+        });
+        html += `</div></div>`;
+      });
+      if(ph.note) html += `<div class="p-3 bg-amber-50 rounded-r-lg text-xs text-amber-800" style="border-left:3px solid #f59e0b"><strong>Note:</strong> ${esc(ph.note)}</div>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+  });
+  el.innerHTML = html;
+}
+
+function togglePhase(idx) { openPhase = openPhase===idx ? -1 : idx; renderContent(); }
+
+async function changeStatus(taskId, status) {
+  try { await api(`/api/tasks/${taskId}/status`,{method:'PUT',body:JSON.stringify({status})}); await loadData(); }
+  catch(e) { alert('Error: '+e.message); }
+}
+
+async function resetTask(taskId) {
+  if(!confirm('Reset this task?')) return;
+  try { await api(`/api/tasks/${taskId}/reset`,{method:'POST'}); await loadData(); }
+  catch(e) { alert('Error: '+e.message); }
+}
+
+function showForward(taskId, label) {
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4';
+  overlay.innerHTML = `<div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4">
+    <h3 class="font-bold text-gray-900">Forward Task</h3>
+    <p class="text-sm text-gray-500">${esc(label)}</p>
+    <div><label class="text-xs font-medium text-gray-600 block mb-1">Type</label>
+      <select id="fwType" class="w-full border rounded-lg px-3 py-2 text-sm"><option value="approval">For Approval</option><option value="action">For Action</option></select></div>
+    <div><label class="text-xs font-medium text-gray-600 block mb-1">Forward To</label>
+      <select id="fwTo" class="w-full border rounded-lg px-3 py-2 text-sm"></select></div>
+    <div><label class="text-xs font-medium text-gray-600 block mb-1">Description</label>
+      <textarea id="fwDesc" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm resize-none"></textarea></div>
+    <div><label class="text-xs font-medium text-gray-600 block mb-1">Due Date</label>
+      <input type="date" id="fwDue" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
+    <div class="flex justify-end gap-2">
+      <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+      <button id="fwSubmit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Forward</button>
     </div>
-    
-    <!-- Main App -->
-    <div id="appContainer" class="hidden">
-        <!-- Top Header -->
-        <div class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
-            <div class="max-w-full px-6 py-4 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <img src="https://must.edu.pk/wp-content/uploads/2023/06/MUST-Logo-1.png" alt="MUST Logo" class="h-8" onerror="this.style.display='none'">
-                    <div>
-                        <h1 class="text-lg font-bold text-gray-900">MUST — Odoo Academic Implementation Tracker</h1>
-                        <p class="text-xs text-gray-600">Multan University of Science & Technology</p>
-                    </div>
-                </div>
-                
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200">
-                        <div id="userBadge" class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"></div>
-                        <div>
-                            <p id="userDisplayName" class="text-sm font-semibold text-gray-900"></p>
-                            <p id="userRole" class="text-xs text-gray-600"></p>
-                        </div>
-                    </div>
-                    
-                    <button onclick="showChangePasswordModal()" class="p-2 hover:bg-gray-100 rounded-lg transition" title="Change Password">
-                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.753 5.929l-.066-.066a6 6 0 010-8.486.5.5 0 00-.75.75 5 5 0 110 7.07l.75-.75a.5.5 0 00-.75-.75l-.066.066A6 6 0 0115 7zm6 0a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                    </button>
-                    
-                    <button onclick="loadRoadmap()" class="p-2 hover:bg-gray-100 rounded-lg transition" title="Refresh">
-                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                    </button>
-                    
-                    <button onclick="handleSignOut()" class="flex items-center gap-1 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition text-sm font-medium">
-                        → Sign Out
-                    </button>
-                </div>
-            </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  // Populate users
+  api('/api/users').then(d => {
+    const sel = document.getElementById('fwTo');
+    (d.users||[]).forEach(u => { const o=document.createElement('option'); o.value=u.username; o.textContent=u.display_name+' ('+u.role+')'; sel.appendChild(o); });
+  });
+  document.getElementById('fwSubmit').onclick = async() => {
+    try {
+      await api(`/api/tasks/${taskId}/forward`,{method:'POST',body:JSON.stringify({
+        forwardType:document.getElementById('fwType').value,
+        title:label, description:document.getElementById('fwDesc').value,
+        forwardTo:document.getElementById('fwTo').value,
+        dueDate:document.getElementById('fwDue').value||null
+      })});
+      overlay.remove(); await loadData();
+    } catch(e) { alert('Error: '+e.message); }
+  };
+}
+
+/* ══════ RENDER: TASKS TAB (forwarded items) ══════ */
+function isForMe(item) {
+  const ft = (item.forwarded_to||'').toLowerCase();
+  const myU = (user.username||'').toLowerCase();
+  const myR = (user.role||'').toLowerCase();
+  return ft===myU || ft===myR;
+}
+
+function renderTasks(el) {
+  const myId = user.id;
+  const items = user.role==='admin' ? forwarded : forwarded.filter(i => i.forwarded_by===myId || isForMe(i));
+  const active = items.filter(i => !i.dismissed);
+
+  let html = `<div class="flex gap-2 mb-4">
+    <button onclick="fwFilter='pending';renderContent()" class="px-3 py-1.5 rounded-full text-xs font-medium ${fwFilter==='pending'?'bg-gray-900 text-white':'bg-white border text-gray-600'}">Pending</button>
+    <button onclick="fwFilter='all';renderContent()" class="px-3 py-1.5 rounded-full text-xs font-medium ${fwFilter==='all'?'bg-gray-900 text-white':'bg-white border text-gray-600'}">All</button>
+  </div>`;
+
+  let filtered = active;
+  if(fwFilter==='pending') filtered = active.filter(i => (isForMe(i)&&i.status==='pending') || (i.forwarded_by===myId&&i.status==='rejected'));
+
+  if(filtered.length===0) { html += `<div class="text-center py-16 text-gray-400 bg-white rounded-xl border"><p class="text-sm">No items</p></div>`; }
+  else filtered.forEach(item => {
+    const isApproval = item.forward_type==='approval';
+    const isPending = item.status==='pending';
+    const isRejected = item.status==='rejected';
+    const isMine = isForMe(item);
+    const overdue = item.due_date && item.status==='pending' && new Date(item.due_date) < new Date();
+    const stColor = item.status==='approved'||item.status==='done'?'#059669':item.status==='rejected'||item.status==='declined'?'#dc2626':'#6b7280';
+
+    html += `<div class="bg-white border rounded-xl p-4 mb-2 ${overdue?'border-red-300':''}">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <span class="font-semibold text-sm text-gray-900">${esc(item.title)}</span>
+          <span class="ml-2 px-2 py-0.5 rounded-full text-xs" style="background:${isApproval?'#FFF7ED':'#EFF6FF'};color:${isApproval?'#E8792B':'#1B3A5C'}">${isApproval?'Approval':'Action'}</span>
+          <span class="ml-1 px-2 py-0.5 rounded-full text-xs font-medium" style="color:${stColor}">${item.status}</span>
+          ${overdue?'<span class="ml-1 text-xs text-red-600 font-medium">⚠ OVERDUE</span>':''}
         </div>
-        
-        <!-- Tab Navigation -->
-        <div class="bg-white border-b border-gray-200">
-            <div class="max-w-full px-6 flex gap-8">
-                <button onclick="switchTab('roadmap')" class="roadmapTab py-3 px-1 border-b-2 border-transparent text-gray-700 font-medium hover:text-blue-700 hover:border-blue-200 transition">
-                    Roadmap
-                </button>
-                <button onclick="switchTab('tasks')" class="tasksTab py-3 px-1 border-b-2 border-transparent text-gray-700 font-medium hover:text-blue-700 hover:border-blue-200 transition">
-                    Tasks
-                </button>
-                <button onclick="switchTab('dashboard')" class="dashboardTab py-3 px-1 border-b-2 border-transparent text-gray-700 font-medium hover:text-blue-700 hover:border-blue-200 transition">
-                    Dashboard
-                </button>
-                <button id="usersTabBtn" onclick="switchTab('users')" class="usersTab py-3 px-1 border-b-2 border-transparent text-gray-700 font-medium hover:text-blue-700 hover:border-blue-200 transition hidden">
-                    Users
-                </button>
-            </div>
-        </div>
-        
-        <!-- Content Area -->
-        <div class="max-w-full px-6 py-6">
-            <!-- Roadmap Tab -->
-            <div id="roadmapTab" class="hidden">
-                <!-- Stats Row -->
-                <div class="grid grid-cols-5 gap-4 mb-6">
-                    <div class="bg-white border border-gray-200 rounded-xl p-4">
-                        <p class="text-3xl font-bold text-blue-600" id="statOverall">0%</p>
-                        <p class="text-sm text-gray-600 font-medium">Overall Progress</p>
-                        <div class="mt-2 bg-gray-200 rounded-full h-2">
-                            <div id="statOverallBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white border border-gray-200 rounded-xl p-4">
-                        <p class="text-3xl font-bold text-green-600" id="statCompleted">0</p>
-                        <p class="text-sm text-gray-600 font-medium">Completed</p>
-                        <p class="text-xs text-gray-500 mt-1">Tasks done</p>
-                    </div>
-                    
-                    <div class="bg-white border border-gray-200 rounded-xl p-4">
-                        <p class="text-3xl font-bold text-amber-500" id="statInProgress">0</p>
-                        <p class="text-sm text-gray-600 font-medium">In Progress</p>
-                        <p class="text-xs text-gray-500 mt-1">Currently working</p>
-                    </div>
-                    
-                    <div class="bg-white border border-gray-200 rounded-xl p-4">
-                        <p class="text-3xl font-bold text-gray-600" id="statNotStarted">0</p>
-                        <p class="text-sm text-gray-600 font-medium">Not Started</p>
-                        <p class="text-xs text-gray-500 mt-1">Pending</p>
-                    </div>
-                    
-                    <div class="bg-white border border-gray-200 rounded-xl p-4">
-                        <p class="text-3xl font-bold text-purple-600" id="statForwarded">0</p>
-                        <p class="text-sm text-gray-600 font-medium">Forwarded Items</p>
-                        <p class="text-xs text-gray-500 mt-1">Pending approval</p>
-                    </div>
-                </div>
-                
-                <!-- Category Legend -->
-                <div class="flex gap-6 mb-6 flex-wrap">
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full" style="background-color: #d97706;"></div>
-                        <span class="text-sm text-gray-700">Policy</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full" style="background-color: #2563eb;"></div>
-                        <span class="text-sm text-gray-700">Document</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full" style="background-color: #059669;"></div>
-                        <span class="text-sm text-gray-700">Odoo Config</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full" style="background-color: #dc2626;"></div>
-                        <span class="text-sm text-gray-700">Immediate Action</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full" style="background-color: #6b7280;"></div>
-                        <span class="text-sm text-gray-700">Approval Authority</span>
-                    </div>
-                </div>
-                
-                <!-- Phase Cards -->
-                <div id="phasesContainer" class="space-y-4">
-                    <!-- Dynamically populated -->
-                </div>
-            </div>
-            
-            <!-- Tasks Tab (Forwarded Items) -->
-            <div id="tasksTab" class="hidden">
-                <div class="mb-6 flex gap-2">
-                    <button onclick="filterForwarded('pending')" class="filterBtn px-4 py-2 rounded-lg font-medium text-sm border border-gray-300 bg-white hover:bg-gray-50 transition">
-                        Pending
-                    </button>
-                    <button onclick="filterForwarded('all')" class="filterBtn px-4 py-2 rounded-lg font-medium text-sm border border-gray-300 bg-white hover:bg-gray-50 transition">
-                        All
-                    </button>
-                </div>
-                
-                <div id="forwardedItemsContainer" class="space-y-4">
-                    <!-- Dynamically populated -->
-                </div>
-            </div>
-            
-            <!-- Dashboard Tab -->
-            <div id="dashboardTab" class="hidden">
-                <div class="space-y-4" id="dashboardContainer">
-                    <!-- Dynamically populated -->
-                </div>
-            </div>
-            
-            <!-- Users Tab (Admin Only) -->
-            <div id="usersTab" class="hidden">
-                <div class="mb-6">
-                    <button onclick="showCreateUserForm()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">
-                        + Create New User
-                    </button>
-                </div>
-                
-                <div id="usersContainer" class="space-y-3">
-                    <!-- Dynamically populated -->
-                </div>
-            </div>
-        </div>
+      </div>
+      ${item.description?`<p class="text-xs text-gray-600 mb-2">${esc(item.description)}</p>`:''}
+      <div class="text-xs text-gray-400 space-x-3">
+        <span>From: ${esc(item.forwarded_by_name||'')}</span>
+        <span>To: ${esc(item.forwarded_to_name||item.forwarded_to||'')}</span>
+        ${item.due_date?`<span>Due: ${item.due_date}</span>`:''}
+      </div>
+      ${item.response_note?`<div class="mt-2 text-xs p-2 bg-gray-50 rounded">${esc(item.response_note)}</div>`:''}`;
+
+    // Action buttons
+    if(isMine && isPending && isApproval) {
+      html += `<div class="mt-3 flex gap-2">
+        <button onclick="respond(${item.id},'approved')" class="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700">Approve</button>
+        <button onclick="respond(${item.id},'rejected')" class="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">Reject</button></div>`;
+    } else if(isMine && isPending && !isApproval) {
+      html += `<div class="mt-3 flex gap-2">
+        <button onclick="respond(${item.id},'done')" class="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700">Mark Done</button>
+        <button onclick="respond(${item.id},'declined')" class="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">Decline</button></div>`;
+    } else if(item.forwarded_by===myId && isRejected) {
+      html += `<div class="mt-3 flex gap-2">
+        <button onclick="dismiss(${item.id})" class="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600">Dismiss</button></div>`;
+    }
+    html += `</div>`;
+  });
+  el.innerHTML = html;
+}
+let fwFilter = 'pending';
+
+async function respond(id, status) {
+  const note = prompt('Add a note (optional):') || '';
+  try { await api(`/api/forwarded/${id}/respond`,{method:'POST',body:JSON.stringify({status,note})}); await loadData(); }
+  catch(e) { alert('Error: '+e.message); }
+}
+async function dismiss(id) {
+  try { await api(`/api/forwarded/${id}/dismiss`,{method:'POST'}); await loadData(); }
+  catch(e) { alert('Error: '+e.message); }
+}
+
+/* ══════ RENDER: DASHBOARD TAB ══════ */
+function renderDashboard(el) {
+  let html = `<div class="bg-white border rounded-xl p-5"><h3 class="font-semibold text-gray-900 mb-4">Phase Progress Overview</h3><div class="space-y-3">`;
+  phases.forEach(ph => {
+    const c = PHASE_COLORS[ph.phase_number]||'#6b7280';
+    const tasks = ph.tasks||[];
+    const done = tasks.filter(t=>t.status==='done').length;
+    const total = tasks.length;
+    const pct = total?Math.round(done/total*100):0;
+    html += `<div class="flex items-center gap-3">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0" style="background:${c}18;color:${c}">${ph.phase_number}</div>
+      <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm text-gray-700 truncate">${esc(ph.title)}</span><span class="text-xs font-medium ml-2" style="color:${c}">${pct}%</span></div>
+        <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${pct}%;background:${c}"></div></div></div>
+      <span class="text-xs text-gray-400 w-12 text-right flex-shrink-0">${done}/${total}</span></div>`;
+  });
+  html += `</div></div>`;
+
+  html += `<div class="grid grid-cols-2 gap-4 mt-4">
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-5"><h4 class="font-semibold text-blue-800 mb-1">Student Life Cycle</h4><p class="text-xs text-blue-600">Admission · Enrolment · Registration · Graduation</p></div>
+    <div class="bg-green-50 border border-green-200 rounded-xl p-5"><h4 class="font-semibold text-green-800 mb-1">Academic Operations</h4><p class="text-xs text-green-600">Attendance · Examinations · Grading · Results · Records</p></div>
+  </div>`;
+  el.innerHTML = html;
+}
+
+/* ══════ RENDER: USERS TAB (admin) ══════ */
+async function renderUsers(el) {
+  try { const d = await api('/api/users'); users = d.users||[]; } catch(e) { el.innerHTML='<p>Error loading users</p>'; return; }
+  let html = `<div class="flex items-center justify-between mb-4"><h3 class="font-semibold text-gray-900">User Management</h3>
+    <button onclick="showCreateUser()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">+ New User</button></div>`;
+  html += `<div class="space-y-2">`;
+  users.forEach(u => {
+    const r = ROLES[u.role]||ROLES.admin;
+    html += `<div class="bg-white border rounded-xl p-4 flex items-center justify-between">
+      <div><p class="font-semibold text-gray-900">${esc(u.display_name)}</p><p class="text-sm text-gray-500">${esc(u.username)} · ${esc(u.email||'')}</p>
+        <span class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium" style="background:${r.color}15;color:${r.color}">${r.label}</span></div>
+      <button onclick="resetPw(${u.id})" class="px-3 py-1.5 text-xs bg-orange-500 text-white rounded hover:bg-orange-600">Reset Password</button></div>`;
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+async function resetPw(id) {
+  if(!confirm('Reset password for this user to must2026?')) return;
+  try { await api(`/api/users/${id}/reset-password`,{method:'POST'}); alert('Password reset to must2026.'); }
+  catch(e) { alert('Error: '+e.message); }
+}
+
+function showCreateUser() {
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4';
+  overlay.innerHTML = `<div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+    <h3 class="font-bold text-gray-900">Create New User</h3>
+    <div><label class="text-xs font-medium text-gray-600 block mb-1">Username</label><input id="nuUser" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
+    <div><label class="text-xs font-medium text-gray-600 block mb-1">Display Name</label><input id="nuName" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
+    <div><label class="text-xs font-medium text-gray-600 block mb-1">Email</label><input id="nuEmail" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
+    <div><label class="text-xs font-medium text-gray-600 block mb-1">Role</label>
+      <select id="nuRole" class="w-full border rounded-lg px-3 py-2 text-sm">
+        ${Object.entries(ROLES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+      </select></div>
+    <div class="flex justify-end gap-2">
+      <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+      <button id="nuSubmit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create</button>
     </div>
-    
-    <!-- Force Password Change Modal -->
-    <div id="forcePasswordModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
-            <h2 class="text-xl font-bold text-gray-900 mb-4">Change Password</h2>
-            <p class="text-gray-600 mb-4">You must change your password on first login.</p>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-                <input type="password" id="newPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
-            
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
-                <input type="password" id="confirmPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
-            
-            <button onclick="submitPasswordChange()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">
-                Change Password
-            </button>
-        </div>
-    </div>
-    
-    <!-- Generic Modal -->
-    <div id="genericModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
-            <h2 id="modalTitle" class="text-xl font-bold text-gray-900 mb-4"></h2>
-            <div id="modalContent" class="mb-6"></div>
-            <div id="modalActions" class="flex gap-3 justify-end"></div>
-        </div>
-    </div>
-    
-    <script>
-        // Role configuration
-        const ROLE_CONFIG = {
-            admin: { label: "System Administrator", color: "#6366f1" },
-            registrar: { label: "Registrar", color: "#059669" },
-            coe: { label: "Controller of Examinations", color: "#2563eb" },
-            vc: { label: "Vice Chancellor", color: "#d97706" },
-            dean: { label: "Dean", color: "#7c3aed" }
-        };
-        
-        // Task categories
-        const TASK_CATEGORIES = {
-            policy: { bg: "#fffbeb", color: "#d97706", border: "#fde68a", label: "Policy" },
-            doc: { bg: "#eff6ff", color: "#2563eb", border: "#bfdbfe", label: "Document" },
-            odoo: { bg: "#ecfdf5", color: "#059669", border: "#a7f3d0", label: "Odoo Config" },
-            action: { bg: "#fef2f2", color: "#dc2626", border: "#fecaca", label: "Immediate Action" },
-            authority: { bg: "#f9fafb", color: "#6b7280", border: "#e5e7eb", label: "Approval Authority" }
-        };
-        
-        // Task statuses
-        const TASK_STATUSES = {
-            done: { bg: "#ecfdf5", color: "#059669", border: "#a7f3d0", label: "Completed" },
-            "in-progress": { bg: "#eff6ff", color: "#2563eb", border: "#bfdbfe", label: "In Progress" },
-            "not-started": { bg: "#f9fafb", color: "#6b7280", border: "#e5e7eb", label: "Not Started" }
-        };
-        
-        // Phase colors
-        const PHASE_COLORS = [
-            "#ef4444", "#f59e0b", "#f59e0b", "#3b82f6", "#3b82f6",
-            "#10b981", "#10b981", "#3b82f6", "#3b82f6", "#10b981",
-            "#10b981", "#6b7280", "#6b7280"
-        ];
-        
-        // Global state
-        let currentUser = null;
-        let allPhases = [];
-        let forwardedFilter = 'pending';
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', init);
-        
-        async function init() {
-            // Set up fetch interception for auth token
-            interceptFetch();
-            
-            // Load available users for dropdown
-            await loadAvailableUsers();
-            
-            // Check if already logged in (validate token against API)
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                document.getElementById('__app_token').value = token;
-                try {
-                    const testRes = await fetch('/api/phases', {
-                        headers: { 'Authorization': 'Bearer ' + token }
-                    });
-                    if (testRes.ok) {
-                        const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
-                        if (user && !user.mustChangePassword) {
-                            currentUser = user;
-                            showApp();
-                            await loadRoadmap();
-                            return;
-                        }
-                    }
-                } catch (e) { /* token validation failed */ }
-                // Token invalid, expired, or user must change password — force fresh login
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('currentUser');
-                document.getElementById('__app_token').value = '';
-            }
-        }
-        
-        function interceptFetch() {
-            const originalFetch = window.fetch;
-            window.fetch = function(...args) {
-                const url = args[0];
-                const options = args[1] || {};
-                options.headers = options.headers || {};
-                
-                // Add token to all authenticated requests
-                const tokenEl = document.getElementById('__app_token');
-                if (tokenEl && tokenEl.value && !url.includes('/api/users/public') && !url.includes('/api/login')) {
-                    options.headers['Authorization'] = 'Bearer ' + tokenEl.value;
-                }
-                
-                // Ensure Content-Type for POST/PUT with body
-                if (options.body && !options.headers['Content-Type']) {
-                    options.headers['Content-Type'] = 'application/json';
-                }
-                
-                args[1] = options;
-                return originalFetch.apply(this, args);
-            };
-        }
-        
-        async function loadAvailableUsers() {
-            try {
-                const res = await fetch('/api/users/public');
-                const data = await res.json();
-                
-                const select = document.getElementById('loginUsername');
-                data.users.forEach(user => {
-                    const option = document.createElement('option');
-                    option.value = user.username;
-                    option.textContent = `${user.display_name} (${ROLE_CONFIG[user.role]?.label || user.role})`;
-                    select.appendChild(option);
-                });
-            } catch (e) {
-                console.error('Failed to load users:', e);
-            }
-        }
-        
-        async function handleLogin() {
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            
-            if (!username || !password) {
-                alert('Please select a user and enter password');
-                return;
-            }
-            
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.error || 'Invalid credentials');
-                }
-                
-                const data = await res.json();
-                currentUser = data.user;
-                
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                document.getElementById('__app_token').value = data.token;
-                
-                showApp();
-                
-                // Check if password change is needed
-                if (currentUser.mustChangePassword) {
-                    document.getElementById('forcePasswordModal').classList.remove('hidden');
-                } else {
-                    await loadRoadmap();
-                }
-            } catch (e) {
-                alert('Login failed: ' + e.message);
-            }
-        }
-        
-        function showApp() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('appContainer').classList.remove('hidden');
-            
-            // Update user info
-            const config = ROLE_CONFIG[currentUser.role];
-            document.getElementById('userBadge').style.backgroundColor = config.color;
-            const dName = currentUser.displayName || currentUser.display_name || currentUser.username;
-            document.getElementById('userBadge').textContent = dName.charAt(0).toUpperCase();
-            document.getElementById('userDisplayName').textContent = dName;
-            document.getElementById('userRole').textContent = config.label;
-            
-            // Show users tab if admin
-            if (currentUser.role === 'admin') {
-                document.getElementById('usersTabBtn').classList.remove('hidden');
-            }
-        }
-        
-        async function submitPasswordChange() {
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            
-            if (newPassword !== confirmPassword) {
-                alert('Passwords do not match');
-                return;
-            }
-            
-            if (newPassword.length < 6) {
-                alert('Password must be at least 6 characters');
-                return;
-            }
-            
-            try {
-                const res = await fetch('/api/force-change-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ newPassword })
-                });
-                
-                if (!res.ok) throw new Error('Failed to change password');
-                
-                document.getElementById('forcePasswordModal').classList.add('hidden');
-                currentUser.mustChangePassword = false;
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                
-                await loadRoadmap();
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-        
-        function showChangePasswordModal() {
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmPassword').value = '';
-            document.getElementById('forcePasswordModal').classList.remove('hidden');
-        }
-        
-        async function loadRoadmap() {
-            try {
-                const res = await fetch('/api/phases');
-                if (res.status === 401) { handleSignOut(); return; }
-                const data = await res.json();
-                
-                allPhases = data.phases;
-                
-                // Update stats
-                document.getElementById('statOverall').textContent = data.progress.pctDone + '%';
-                document.getElementById('statOverallBar').style.width = data.progress.pctDone + '%';
-                document.getElementById('statCompleted').textContent = data.progress.done;
-                document.getElementById('statInProgress').textContent = data.progress.inProgress;
-                document.getElementById('statNotStarted').textContent = data.progress.notStarted;
-                
-                // Load forwarded items count
-                const forwardedRes = await fetch('/api/forwarded');
-                const forwardedData = await forwardedRes.json();
-                document.getElementById('statForwarded').textContent = forwardedData.forwardedItems.length;
-                
-                // Render phases
-                renderPhases();
-                
-                // Render dashboard
-                renderDashboard();
-            } catch (e) {
-                console.error('Failed to load phases:', e);
-            }
-        }
-        
-        function renderPhases() {
-            const container = document.getElementById('phasesContainer');
-            container.innerHTML = '';
-            
-            allPhases.forEach((phase, idx) => {
-                const color = PHASE_COLORS[phase.phase_number] || '#6b7280';
-                const totalTasks = phase.tasks.length;
-                const doneTasks = phase.tasks.filter(t => t.status === 'done').length;
-                const inProgressTasks = phase.tasks.filter(t => t.status === 'in-progress').length;
-                
-                let phaseStatus = 'not-started';
-                let statusLabel = 'Not Started';
-                let statusBg = '#f9fafb';
-                let statusColor = '#6b7280';
-                
-                if (doneTasks === totalTasks) {
-                    phaseStatus = 'done';
-                    statusLabel = 'Completed';
-                    statusBg = '#ecfdf5';
-                    statusColor = '#059669';
-                } else if (inProgressTasks > 0 || doneTasks > 0) {
-                    phaseStatus = 'in-progress';
-                    statusLabel = 'In Progress';
-                    statusBg = '#eff6ff';
-                    statusColor = '#2563eb';
-                }
-                
-                const pctDone = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-                
-                const card = document.createElement('div');
-                card.className = 'bg-white border border-gray-200 rounded-xl overflow-hidden';
-                card.innerHTML = `
-                    <button onclick="togglePhaseExpand(${idx})" class="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50 transition text-left">
-                        <div class="flex items-center gap-4 flex-1">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style="background-color: ${color};">
-                                ${phase.phase_number}
-                            </div>
-                            
-                            <div class="flex-1">
-                                <h3 class="font-bold text-gray-900">${phase.title}</h3>
-                                <p class="text-sm text-gray-600">${phase.subtitle || ''}</p>
-                            </div>
-                            
-                            <div class="px-2 py-1 rounded text-xs font-medium" style="background-color: ${statusBg}; color: ${statusColor};">
-                                ${statusLabel}
-                            </div>
-                            
-                            <div class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
-                                ${phase.timeline || ''}
-                            </div>
-                            
-                            <div class="text-xs font-medium text-gray-600">
-                                ${doneTasks}/${totalTasks}
-                            </div>
-                        </div>
-                        
-                        <svg class="phaseChevron w-5 h-5 text-gray-400 ml-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                        </svg>
-                    </button>
-                    
-                    <div class="phaseBody hidden border-t border-gray-200">
-                        <div class="px-4 py-4 space-y-6">
-                            <!-- Tasks will be rendered here -->
-                        </div>
-                        
-                        ${phase.note ? `
-                            <div class="mx-4 mb-4 px-4 py-3 bg-amber-50 border-l-4 border-amber-400 text-sm text-amber-800">
-                                <strong>Phase Note:</strong> ${phase.note}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-                
-                container.appendChild(card);
-                
-                // Render tasks in the body
-                const taskBody = card.querySelector('.phaseBody > div');
-                const tasksBySection = {};
-                
-                phase.tasks.forEach(task => {
-                    const section = task.section_label || 'Other';
-                    if (!tasksBySection[section]) tasksBySection[section] = [];
-                    tasksBySection[section].push(task);
-                });
-                
-                Object.entries(tasksBySection).forEach(([section, tasks]) => {
-                    const sectionDiv = document.createElement('div');
-                    sectionDiv.innerHTML = `<h4 class="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3">${section}</h4>`;
-                    
-                    tasks.forEach(task => {
-                        const taskCat = TASK_CATEGORIES[task.category] || TASK_CATEGORIES.authority;
-                        const taskStatus = TASK_STATUSES[task.status] || TASK_STATUSES['not-started'];
-                        
-                        let statusIcon = '○';
-                        if (task.status === 'done') statusIcon = '✓';
-                        else if (task.status === 'in-progress') statusIcon = '◐';
-                        
-                        const canEdit = ['admin', 'registrar', 'coe'].includes(currentUser.role);
-                        
-                        const taskRow = document.createElement('div');
-                        taskRow.className = 'flex items-center gap-3 py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition';
-                        taskRow.innerHTML = `
-                            <span class="text-lg" style="color: ${taskStatus.color};">${statusIcon}</span>
-                            <span class="flex-1 text-gray-800">${task.label}</span>
-                            <div class="px-2 py-1 rounded text-xs font-medium" style="background-color: ${taskCat.bg}; color: ${taskCat.color}; border: 1px solid ${taskCat.border};">
-                                ${taskCat.label}
-                            </div>
-                            <div class="px-2 py-1 rounded text-xs font-medium" style="background-color: ${taskStatus.bg}; color: ${taskStatus.color}; border: 1px solid ${taskStatus.border};">
-                                ${taskStatus.label}
-                            </div>
-                            ${canEdit ? `
-                                <select onchange="updateTaskStatus(${task.id}, this.value)" class="text-xs border border-gray-300 rounded px-2 py-1">
-                                    <option value="not-started" ${task.status === 'not-started' ? 'selected' : ''}>Not Started</option>
-                                    <option value="in-progress" ${task.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
-                                    <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
-                                </select>
-                            ` : ''}
-                            <button onclick="showTaskActions(${task.id})" class="p-1 hover:bg-white rounded transition">
-                                ⋮
-                            </button>
-                        `;
-                        sectionDiv.appendChild(taskRow);
-                    });
-                    
-                    taskBody.appendChild(sectionDiv);
-                });
-            });
-        }
-        
-        function togglePhaseExpand(idx) {
-            const cards = document.querySelectorAll('#phasesContainer > div');
-            const card = cards[idx];
-            const body = card.querySelector('.phaseBody');
-            const chevron = card.querySelector('.phaseChevron');
-            
-            body.classList.toggle('hidden');
-            chevron.style.transform = body.classList.contains('hidden') ? 'rotate(0)' : 'rotate(180deg)';
-        }
-        
-        async function updateTaskStatus(taskId, newStatus) {
-            try {
-                const res = await fetch(`/api/tasks/${taskId}/status`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: newStatus })
-                });
-                
-                if (!res.ok) throw new Error('Failed to update task');
-                
-                await loadRoadmap();
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-        
-        function showTaskActions(taskId) {
-            const task = allPhases.flatMap(p => p.tasks).find(t => t.id === taskId);
-            
-            document.getElementById('modalTitle').textContent = 'Task Actions';
-            document.getElementById('modalContent').innerHTML = `<p>${task.label}</p>`;
-            
-            const actionsDiv = document.getElementById('modalActions');
-            actionsDiv.innerHTML = '';
-            
-            if (currentUser.role === 'admin') {
-                const resetBtn = document.createElement('button');
-                resetBtn.className = 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition';
-                resetBtn.textContent = 'Reset Task';
-                resetBtn.onclick = async () => {
-                    try {
-                        await fetch(`/api/tasks/${taskId}/reset`, { method: 'POST' });
-                        await loadRoadmap();
-                        document.getElementById('genericModal').classList.add('hidden');
-                    } catch (e) {
-                        alert('Error: ' + e.message);
-                    }
-                };
-                actionsDiv.appendChild(resetBtn);
-            }
-            
-            const forwardBtn = document.createElement('button');
-            forwardBtn.className = 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition';
-            forwardBtn.textContent = 'Forward for Approval';
-            forwardBtn.onclick = () => showForwardModal(taskId);
-            actionsDiv.appendChild(forwardBtn);
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition';
-            closeBtn.textContent = 'Close';
-            closeBtn.onclick = () => document.getElementById('genericModal').classList.add('hidden');
-            actionsDiv.appendChild(closeBtn);
-            
-            document.getElementById('genericModal').classList.remove('hidden');
-        }
-        
-        function showForwardModal(taskId) {
-            // Simple forwarding form
-            document.getElementById('genericModal').classList.add('hidden');
-            // TODO: Implement forward modal
-        }
-        
-        async function renderDashboard() {
-            const container = document.getElementById('dashboardContainer');
-            container.innerHTML = '';
-            
-            allPhases.forEach(phase => {
-                const totalTasks = phase.tasks.length;
-                const doneTasks = phase.tasks.filter(t => t.status === 'done').length;
-                const pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-                
-                const card = document.createElement('div');
-                card.className = 'bg-white border border-gray-200 rounded-lg p-4';
-                card.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-semibold text-gray-900">${phase.title}</h3>
-                        <span class="text-sm font-bold text-gray-600">${pct}%</span>
-                    </div>
-                    <div class="bg-gray-200 rounded-full h-3">
-                        <div class="bg-blue-600 h-3 rounded-full transition-all" style="width: ${pct}%"></div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-        
-        function switchTab(tab) {
-            // Hide all tabs
-            document.getElementById('roadmapTab').classList.add('hidden');
-            document.getElementById('tasksTab').classList.add('hidden');
-            document.getElementById('dashboardTab').classList.add('hidden');
-            document.getElementById('usersTab').classList.add('hidden');
-            
-            // Remove active styling
-            document.querySelectorAll('.roadmapTab, .tasksTab, .dashboardTab, .usersTab').forEach(btn => {
-                btn.classList.remove('border-blue-500', 'text-blue-700');
-                btn.classList.add('border-transparent', 'text-gray-700');
-            });
-            
-            // Show selected tab
-            document.getElementById(tab + 'Tab').classList.remove('hidden');
-            
-            // Add active styling
-            const activeBtn = document.querySelector(`.${tab}Tab`);
-            activeBtn.classList.add('border-blue-500', 'text-blue-700');
-            activeBtn.classList.remove('border-transparent', 'text-gray-700');
-            
-            if (tab === 'tasks') {
-                loadForwardedItems();
-            } else if (tab === 'users') {
-                loadUsers();
-            }
-        }
-        
-        async function loadForwardedItems() {
-            try {
-                const res = await fetch('/api/forwarded');
-                const data = await res.json();
-                
-                const container = document.getElementById('forwardedItemsContainer');
-                container.innerHTML = '';
-                
-                let items = data.forwardedItems;
-                if (forwardedFilter === 'pending') {
-                    items = items.filter(item => item.status === 'pending');
-                }
-                
-                if (items.length === 0) {
-                    container.innerHTML = '<p class="text-gray-600">No forwarded items</p>';
-                    return;
-                }
-                
-                items.forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = 'bg-white border border-gray-200 rounded-lg p-4';
-                    
-                    let actionButtons = '';
-                    if (item.forward_type === 'approval' && item.status === 'pending') {
-                        actionButtons = `
-                            <button onclick="respondForwarded(${item.id}, 'approved')" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition">Approve</button>
-                            <button onclick="respondForwarded(${item.id}, 'rejected')" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition">Reject</button>
-                        `;
-                    } else if (item.forward_type === 'action' && item.status === 'pending') {
-                        actionButtons = `
-                            <button onclick="respondForwarded(${item.id}, 'completed')" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition">Mark Done</button>
-                            <button onclick="respondForwarded(${item.id}, 'declined')" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition">Decline</button>
-                        `;
-                    } else if (item.status !== 'pending') {
-                        actionButtons = `
-                            <button onclick="dismissForwarded(${item.id})" class="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 transition">Dismiss</button>
-                        `;
-                    }
-                    
-                    card.innerHTML = `
-                        <h3 class="font-bold text-gray-900 mb-2">${item.title}</h3>
-                        <p class="text-sm text-gray-600 mb-3">${item.description}</p>
-                        <div class="text-xs text-gray-600 mb-3">
-                            <p>From: <strong>${item.forwarded_by}</strong></p>
-                            <p>To: <strong>${item.forwarded_to}</strong></p>
-                            ${item.due_date ? `<p>Due: <strong>${new Date(item.due_date).toLocaleDateString()}</strong></p>` : ''}
-                        </div>
-                        <div class="flex gap-2">${actionButtons}</div>
-                    `;
-                    
-                    container.appendChild(card);
-                });
-            } catch (e) {
-                console.error('Failed to load forwarded items:', e);
-            }
-        }
-        
-        async function respondForwarded(id, status) {
-            try {
-                await fetch(`/api/forwarded/${id}/respond`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status })
-                });
-                await loadForwardedItems();
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-        
-        async function dismissForwarded(id) {
-            try {
-                await fetch(`/api/forwarded/${id}/dismiss`, { method: 'POST' });
-                await loadForwardedItems();
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-        
-        function filterForwarded(filter) {
-            forwardedFilter = filter;
-            loadForwardedItems();
-        }
-        
-        async function loadUsers() {
-            try {
-                const res = await fetch('/api/users');
-                const data = await res.json();
-                
-                const container = document.getElementById('usersContainer');
-                container.innerHTML = '';
-                
-                data.users.forEach(user => {
-                    const config = ROLE_CONFIG[user.role];
-                    const card = document.createElement('div');
-                    card.className = 'bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between';
-                    card.innerHTML = `
-                        <div>
-                            <p class="font-semibold text-gray-900">${user.display_name}</p>
-                            <p class="text-sm text-gray-600">${user.username}</p>
-                            <div class="inline-block mt-2 px-2 py-1 rounded text-xs font-medium" style="background-color: ${config.color}20; color: ${config.color};">
-                                ${config.label}
-                            </div>
-                        </div>
-                        <button onclick="resetUserPassword(${user.id})" class="px-3 py-1 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 transition">
-                            Reset Password
-                        </button>
-                    `;
-                    container.appendChild(card);
-                });
-            } catch (e) {
-                console.error('Failed to load users:', e);
-            }
-        }
-        
-        async function resetUserPassword(userId) {
-            if (!confirm('Reset password for this user?')) return;
-            
-            try {
-                await fetch(`/api/users/${userId}/reset-password`, { method: 'POST' });
-                alert('Password reset. User will be prompted to change it on next login.');
-                await loadUsers();
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-        
-        function showCreateUserForm() {
-            document.getElementById('modalTitle').textContent = 'Create New User';
-            document.getElementById('modalContent').innerHTML = `
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                        <input type="text" id="newUserUsername" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-                        <input type="text" id="newUserDisplayName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" id="newUserEmail" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                        <select id="newUserRole" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option value="admin">System Administrator</option>
-                            <option value="registrar">Registrar</option>
-                            <option value="coe">Controller of Examinations</option>
-                            <option value="vc">Vice Chancellor</option>
-                            <option value="dean">Dean</option>
-                        </select>
-                    </div>
-                </div>
-            `;
-            
-            const actionsDiv = document.getElementById('modalActions');
-            actionsDiv.innerHTML = '';
-            
-            const createBtn = document.createElement('button');
-            createBtn.className = 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition';
-            createBtn.textContent = 'Create User';
-            createBtn.onclick = submitCreateUser;
-            actionsDiv.appendChild(createBtn);
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition';
-            closeBtn.textContent = 'Cancel';
-            closeBtn.onclick = () => document.getElementById('genericModal').classList.add('hidden');
-            actionsDiv.appendChild(closeBtn);
-            
-            document.getElementById('genericModal').classList.remove('hidden');
-        }
-        
-        async function submitCreateUser() {
-            const username = document.getElementById('newUserUsername').value;
-            const displayName = document.getElementById('newUserDisplayName').value;
-            const email = document.getElementById('newUserEmail').value;
-            const role = document.getElementById('newUserRole').value;
-            
-            if (!username || !displayName || !email || !role) {
-                alert('Please fill all fields');
-                return;
-            }
-            
-            try {
-                const res = await fetch('/api/users', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, displayName, email, role })
-                });
-                
-                if (!res.ok) throw new Error('Failed to create user');
-                
-                document.getElementById('genericModal').classList.add('hidden');
-                await loadUsers();
-                alert('User created successfully');
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-        
-        function handleSignOut() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('currentUser');
-            document.getElementById('__app_token').value = '';
-            document.getElementById('appContainer').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('loginPassword').value = '';
-            currentUser = null;
-        }
-    </script>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('nuSubmit').onclick = async() => {
+    try {
+      await api('/api/users',{method:'POST',body:JSON.stringify({
+        username:document.getElementById('nuUser').value.toLowerCase().trim(),
+        displayName:document.getElementById('nuName').value,
+        email:document.getElementById('nuEmail').value,
+        role:document.getElementById('nuRole').value
+      })});
+      overlay.remove(); alert('User created with default password must2026.'); renderUsers(document.getElementById('content'));
+    } catch(e) { alert('Error: '+e.message); }
+  };
+}
+
+/* ══════ INIT ══════ */
+renderLogin();
+</script>
 </body>
 </html>
