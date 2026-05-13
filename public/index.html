@@ -13,7 +13,7 @@
     <div id="loginScreen" class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
         <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
             <div class="flex justify-center mb-6">
-                <img src="/logo.png" alt="MUST Logo" class="h-16">
+                <img src="https://must.edu.pk/wp-content/uploads/2023/06/MUST-Logo-1.png" alt="MUST Logo" class="h-16" onerror="this.style.display='none'">
             </div>
             <h1 class="text-2xl font-bold text-center text-gray-900 mb-2">MUST — Odoo Academic Implementation Tracker</h1>
             <p class="text-center text-gray-600 mb-6">Multan University of Science & Technology</p>
@@ -44,7 +44,7 @@
         <div class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
             <div class="max-w-full px-6 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <img src="/logo.png" alt="MUST Logo" class="h-8">
+                    <img src="https://must.edu.pk/wp-content/uploads/2023/06/MUST-Logo-1.png" alt="MUST Logo" class="h-8" onerror="this.style.display='none'">
                     <div>
                         <h1 class="text-lg font-bold text-gray-900">MUST — Odoo Academic Implementation Tracker</h1>
                         <p class="text-xs text-gray-600">Multan University of Science & Technology</p>
@@ -283,17 +283,28 @@
             // Load available users
             await loadAvailableUsers();
             
-            // Check if already logged in
+            // Check if already logged in (validate token by calling API)
             const token = localStorage.getItem('authToken');
             if (token) {
                 document.getElementById('__app_token').value = token;
-                const user = JSON.parse(localStorage.getItem('currentUser'));
-                if (user) {
-                    currentUser = user;
-                    showApp();
-                    await loadRoadmap();
-                    return;
-                }
+                try {
+                    const testRes = await fetch('/api/phases', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (testRes.ok) {
+                        const user = JSON.parse(localStorage.getItem('currentUser'));
+                        if (user) {
+                            currentUser = user;
+                            showApp();
+                            await loadRoadmap();
+                            return;
+                        }
+                    }
+                } catch (e) {}
+                // Token invalid or expired — clear and show login
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                document.getElementById('__app_token').value = '';
             }
         }
         
@@ -346,7 +357,10 @@
                     body: JSON.stringify({ username, password })
                 });
                 
-                if (!res.ok) throw new Error('Invalid credentials');
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || 'Invalid credentials');
+                }
                 
                 const data = await res.json();
                 currentUser = data.user;
@@ -428,6 +442,7 @@
         async function loadRoadmap() {
             try {
                 const res = await fetch('/api/phases');
+                if (res.status === 401) { logout(); return; }
                 const data = await res.json();
                 
                 allPhases = data.phases;
@@ -459,7 +474,7 @@
             container.innerHTML = '';
             
             allPhases.forEach((phase, idx) => {
-                const color = PHASE_COLORS[phase.phase_number - 1] || '#6b7280';
+                const color = PHASE_COLORS[phase.phase_number] || '#6b7280';
                 const totalTasks = phase.tasks.length;
                 const doneTasks = phase.tasks.filter(t => t.status === 'done').length;
                 const inProgressTasks = phase.tasks.filter(t => t.status === 'in-progress').length;
