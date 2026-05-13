@@ -3,2058 +3,921 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MUST Odoo Academic Implementation Tracker</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --navy: #1B3A5C;
-            --gold: #E8792B;
-            --white: #FFFFFF;
-            --light-gray: #F5F5F5;
-            --medium-gray: #E0E0E0;
-            --dark-gray: #666666;
-            --policy: #fac775;
-            --doc: #b5d4f4;
-            --odoo: #c0dd97;
-            --action: #f7c1c1;
-            --authority: #d3d1c7;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: var(--white);
-            color: #333;
-            line-height: 1.6;
-        }
-
-        /* Layout */
-        .app-container {
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .sidebar {
-            width: 250px;
-            background-color: var(--navy);
-            color: white;
-            padding: 2rem 0;
-            overflow-y: auto;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
-        }
-
-        .sidebar-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 2px solid var(--gold);
-            margin-bottom: 2rem;
-        }
-
-        .sidebar-header h1 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--gold);
-        }
-
-        .sidebar-nav {
-            list-style: none;
-        }
-
-        .sidebar-nav li {
-            margin: 0;
-        }
-
-        .sidebar-nav a {
-            display: block;
-            padding: 1rem 1.5rem;
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-
-        .sidebar-nav a:hover {
-            background-color: rgba(232, 121, 43, 0.2);
-            border-left-color: var(--gold);
-        }
-
-        .sidebar-nav a.active {
-            background-color: rgba(232, 121, 43, 0.3);
-            border-left-color: var(--gold);
-            color: var(--gold);
-        }
-
-        .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.2);
-            margin-top: 2rem;
-            font-size: 0.85rem;
-        }
-
-        .user-info {
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .user-name {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .user-role {
-            font-size: 0.8rem;
-            color: var(--gold);
-        }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .header {
-            background-color: var(--white);
-            border-bottom: 1px solid var(--medium-gray);
-            padding: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h2 {
-            color: var(--navy);
-            font-size: 1.5rem;
-        }
-
-        .logout-btn {
-            background-color: var(--gold);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.3s ease;
-        }
-
-        .logout-btn:hover {
-            background-color: #d66a1a;
-        }
-
-        .content-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 2rem;
-        }
-
-        /* Login Screen */
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #e8edf2 0%, #d5dde6 50%, #c4cfd9 100%);
-        }
-
-        .login-box {
-            background: var(--white);
-            padding: 2.5rem 2.5rem 2rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
-            width: 100%;
-            max-width: 420px;
-            text-align: center;
-        }
-
-        .login-logo {
-            display: block;
-            max-width: 300px;
-            margin: 0 auto 1.2rem;
-        }
-
-        .login-box h1 {
-            color: var(--navy);
-            margin-bottom: 0.25rem;
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        .login-box .subtitle {
-            color: var(--dark-gray);
-            margin-bottom: 1.8rem;
-            font-size: 0.85rem;
-        }
-
-        .login-form-card {
-            background: var(--white);
-            border: 1px solid var(--medium-gray);
-            border-radius: 14px;
-            padding: 1.5rem;
-            text-align: left;
-        }
-
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.4rem;
-            color: #6b7280;
-            font-weight: 500;
-            font-size: 0.85rem;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 0.7rem 0.85rem;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            background: #fff;
-            color: #333;
-            font-family: inherit;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--gold);
-            box-shadow: 0 0 0 3px rgba(232, 121, 43, 0.12);
-        }
-
-        .login-btn {
-            width: 100%;
-            padding: 0.7rem;
-            background-color: var(--gold);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s, opacity 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-family: inherit;
-        }
-
-        .login-btn:hover {
-            background-color: #d66a1a;
-        }
-
-        .login-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .login-accounts {
-            margin-top: 1.2rem;
-            padding-top: 1rem;
-            border-top: 1px solid #f0f0f0;
-            text-align: center;
-            font-size: 0.78rem;
-            color: #9ca3af;
-        }
-
-        .login-accounts strong {
-            display: block;
-            color: #6b7280;
-            margin-bottom: 0.3rem;
-        }
-
-        .login-accounts .pw-hint {
-            display: inline-block;
-            margin-top: 0.35rem;
-            font-family: monospace;
-            background: #fef3e8;
-            color: var(--gold);
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-        }
-
-        .error-message {
-            background-color: #fee;
-            color: #c00;
-            padding: 0.75rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-
-        input#__app_token {
-            display: none;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--white);
-            border-radius: 8px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            padding: 2rem;
-            border-bottom: 1px solid var(--medium-gray);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            color: var(--navy);
-            font-size: 1.3rem;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--dark-gray);
-        }
-
-        .modal-body {
-            padding: 2rem;
-        }
-
-        .modal-footer {
-            padding: 1.5rem 2rem;
-            border-top: 1px solid var(--medium-gray);
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-        }
-
-        .btn {
-            padding: 0.6rem 1.2rem;
-            border: none;
-            border-radius: 4px;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .btn-primary {
-            background-color: var(--gold);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #d66a1a;
-        }
-
-        .btn-secondary {
-            background-color: var(--light-gray);
-            color: var(--navy);
-        }
-
-        .btn-secondary:hover {
-            background-color: var(--medium-gray);
-        }
-
-        .btn-danger {
-            background-color: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
-
-        /* Progress */
-        .progress-section {
-            margin-bottom: 2rem;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background-color: var(--light-gray);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 1rem;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background-color: var(--gold);
-            transition: width 0.3s ease;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background-color: var(--light-gray);
-            padding: 1.5rem;
-            border-radius: 6px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--navy);
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--dark-gray);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Filter Chips */
-        .filter-chips {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .chip {
-            padding: 0.5rem 1rem;
-            border: 1px solid var(--medium-gray);
-            background-color: var(--white);
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-
-        .chip:hover {
-            border-color: var(--gold);
-        }
-
-        .chip.active {
-            background-color: var(--gold);
-            color: white;
-            border-color: var(--gold);
-        }
-
-        /* Phases */
-        .phases-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .phase-card {
-            background-color: var(--white);
-            border: 1px solid var(--medium-gray);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .phase-header {
-            display: flex;
-            align-items: center;
-            padding: 1.5rem;
-            cursor: pointer;
-            background-color: var(--light-gray);
-            border-bottom: 1px solid var(--medium-gray);
-            transition: background-color 0.3s ease;
-        }
-
-        .phase-header:hover {
-            background-color: #efefef;
-        }
-
-        .phase-header.expanded {
-            background-color: #efefef;
-        }
-
-        .phase-toggle {
-            font-size: 1.2rem;
-            margin-right: 1rem;
-            transition: transform 0.3s ease;
-            color: var(--navy);
-        }
-
-        .phase-toggle.expanded {
-            transform: rotate(90deg);
-        }
-
-        .phase-badge {
-            display: inline-block;
-            width: 36px;
-            height: 36px;
-            background-color: var(--gold);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            margin-right: 1rem;
-            flex-shrink: 0;
-        }
-
-        .phase-title {
-            flex: 1;
-        }
-
-        .phase-title h3 {
-            color: var(--navy);
-            margin-bottom: 0.25rem;
-        }
-
-        .phase-subtitle {
-            color: var(--dark-gray);
-            font-size: 0.85rem;
-        }
-
-        .phase-timeline {
-            color: var(--dark-gray);
-            font-size: 0.85rem;
-            margin: 0.25rem 0;
-        }
-
-        .phase-progress {
-            display: inline-block;
-            background-color: var(--navy);
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-left: 1rem;
-        }
-
-        .phase-body {
-            display: none;
-            padding: 1.5rem;
-        }
-
-        .phase-body.expanded {
-            display: block;
-        }
-
-        .section {
-            margin-bottom: 2rem;
-        }
-
-        .section-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--navy);
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .task-row {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            background-color: var(--white);
-            border-left: 4px solid var(--medium-gray);
-            margin-bottom: 0.75rem;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .task-row:hover {
-            background-color: var(--light-gray);
-        }
-
-        .task-row.policy { border-left-color: var(--policy); }
-        .task-row.doc { border-left-color: var(--doc); }
-        .task-row.odoo { border-left-color: var(--odoo); }
-        .task-row.action { border-left-color: var(--action); }
-        .task-row.authority { border-left-color: var(--authority); }
-
-        .task-status-icon {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--medium-gray);
-            border-radius: 50%;
-            margin-right: 1rem;
-            flex-shrink: 0;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            font-size: 0.8rem;
-        }
-
-        .task-status-icon:hover {
-            border-color: var(--gold);
-        }
-
-        .task-status-icon.in-progress {
-            background: conic-gradient(var(--gold) 0deg 180deg, var(--light-gray) 180deg);
-            border-color: var(--gold);
-        }
-
-        .task-status-icon.done {
-            background-color: #28a745;
-            border-color: #28a745;
-            color: white;
-        }
-
-        .task-label {
-            flex: 1;
-            margin-right: 1rem;
-        }
-
-        .task-label-text {
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 0.25rem;
-        }
-
-        .task-completed {
-            font-size: 0.8rem;
-            color: var(--dark-gray);
-        }
-
-        .task-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-left: auto;
-        }
-
-        .task-menu-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: var(--dark-gray);
-            padding: 0.25rem 0.5rem;
-        }
-
-        .task-menu-btn:hover {
-            color: var(--navy);
-        }
-
-        .task-menu {
-            display: none;
-            position: absolute;
-            background: var(--white);
-            border: 1px solid var(--medium-gray);
-            border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            min-width: 200px;
-            z-index: 100;
-        }
-
-        .task-menu.active {
-            display: block;
-        }
-
-        .task-menu-item {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            font-size: 0.9rem;
-        }
-
-        .task-menu-item:hover {
-            background-color: var(--light-gray);
-        }
-
-        .task-menu-item.danger {
-            color: #dc3545;
-        }
-
-        .phase-note {
-            background-color: #fffbf0;
-            border-left: 4px solid var(--gold);
-            padding: 1rem;
-            margin-top: 1rem;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            color: #333;
-        }
-
-        /* Forwarded Items */
-        .forwarded-container {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .forwarded-list {
-            flex: 1;
-        }
-
-        .forwarded-filter {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .forwarded-item {
-            background-color: var(--white);
-            border: 1px solid var(--medium-gray);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .forwarded-item.overdue {
-            border-left: 4px solid #dc3545;
-        }
-
-        .forwarded-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 1rem;
-        }
-
-        .forwarded-title {
-            font-weight: 600;
-            color: var(--navy);
-            flex: 1;
-        }
-
-        .forwarded-status-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .forwarded-status-badge.pending {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .forwarded-status-badge.approved {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .forwarded-status-badge.noted {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .forwarded-status-badge.rejected {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
-        .forwarded-status-badge.done {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .forwarded-status-badge.declined {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
-        .forwarded-overdue {
-            color: #dc3545;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-
-        .forwarded-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            font-size: 0.85rem;
-            color: var(--dark-gray);
-            margin-bottom: 1rem;
-        }
-
-        .forwarded-description {
-            margin-bottom: 1rem;
-            line-height: 1.5;
-        }
-
-        .forwarded-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            margin-top: 1rem;
-        }
-
-        .forwarded-note-input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--medium-gray);
-            border-radius: 4px;
-            margin: 0.75rem 0;
-            font-size: 0.9rem;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 60px;
-        }
-
-        /* Users Panel */
-        .users-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-        }
-
-        .users-list {
-            flex: 1;
-        }
-
-        .user-card {
-            background-color: var(--white);
-            border: 1px solid var(--medium-gray);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .user-card-info {
-            flex: 1;
-        }
-
-        .user-card-name {
-            font-weight: 600;
-            color: var(--navy);
-            margin-bottom: 0.25rem;
-        }
-
-        .user-card-email {
-            font-size: 0.85rem;
-            color: var(--dark-gray);
-        }
-
-        .user-role-badge {
-            display: inline-block;
-            background-color: var(--light-gray);
-            color: var(--navy);
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-right: 0.75rem;
-        }
-
-        .user-card-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .create-user-form {
-            background-color: var(--light-gray);
-            border: 1px solid var(--medium-gray);
-            border-radius: 8px;
-            padding: 1.5rem;
-        }
-
-        .create-user-form h3 {
-            color: var(--navy);
-            margin-bottom: 1rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--medium-gray);
-            border-radius: 4px;
-            font-size: 0.95rem;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .app-container {
-                flex-direction: column;
-            }
-
-            .sidebar {
-                width: 100%;
-                padding: 1rem 0;
-            }
-
-            .sidebar-nav a {
-                padding: 0.75rem 1.5rem;
-            }
-
-            .content-area {
-                padding: 1rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .users-section {
-                grid-template-columns: 1fr;
-            }
-
-            .modal-content {
-                width: 95%;
-                max-width: 500px;
-            }
-
-            .task-row {
-                flex-wrap: wrap;
-            }
-
-            .task-label {
-                order: 3;
-                flex-basis: 100%;
-                margin: 0.5rem 0 0 2.5rem;
-            }
-
-            .task-actions {
-                order: 4;
-                margin-left: 2.5rem;
-                margin-top: 0.5rem;
-            }
-
-            .forwarded-container {
-                flex-direction: column;
-                gap: 1rem;
-            }
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--light-gray);
-            border-top-color: var(--gold);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .success-message {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 0.75rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            border: 1px solid #c3e6cb;
-        }
-    </style>
+    <title>MUST — Odoo Academic Implementation Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <!-- Hidden token input -->
-    <input type="hidden" id="__app_token">
-
+<body class="bg-gray-50">
+    <input type="hidden" id="__app_token" value="">
+    
     <!-- Login Screen -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-box">
-            <!-- MUST Logo -->
-            <img class="login-logo" src="https://must.edu.pk/wp-content/uploads/2023/06/MUST-Logo-1.png" alt="Multan University of Science and Technology" onerror="this.style.display='none'">
-            <h1>Odoo Academic Implementation Tracker</h1>
-            <p class="subtitle">Multan University of Science and Technology</p>
-            <div class="login-form-card">
-                <div id="loginError" class="error-message hidden"></div>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <select id="username" name="username" required>
-                            <option value="" disabled selected>✔ Select a user...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required placeholder="Enter your password">
-                    </div>
-                    <button type="submit" class="login-btn">→ Sign In</button>
-                </form>
-                <div class="login-accounts">
-                    <strong>Available accounts:</strong>
-                    <span id="accountsList">admin · registrar · coe · vc · dean</span>
-                    <br>Default password: <span class="pw-hint">must2026</span>
-                </div>
+    <div id="loginScreen" class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
+        <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+            <div class="flex justify-center mb-6">
+                <img src="/logo.png" alt="MUST Logo" class="h-16">
             </div>
+            <h1 class="text-2xl font-bold text-center text-gray-900 mb-2">MUST — Odoo Academic Implementation Tracker</h1>
+            <p class="text-center text-gray-600 mb-6">Multan University of Science & Technology</p>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">User</label>
+                <select id="loginUsername" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Select a user...</option>
+                </select>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input type="password" id="loginPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <button onclick="handleLogin()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition">
+                Sign In
+            </button>
+            
+            <p class="text-center text-sm text-gray-600 mt-4">Available accounts are shown above</p>
         </div>
     </div>
-
+    
     <!-- Main App -->
-    <div id="appContainer" class="app-container hidden">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h1>MUST Tracker</h1>
-            </div>
-            <ul class="sidebar-nav">
-                <li><a href="#" data-view="dashboard" class="nav-link active">📊 Dashboard</a></li>
-                <li><a href="#" data-view="tasks" class="nav-link">📋 Tasks</a></li>
-                <li id="usersNavItem" class="hidden"><a href="#" data-view="users" class="nav-link">👥 Users</a></li>
-            </ul>
-            <div class="sidebar-footer">
-                <div class="user-info">
-                    <div class="user-name" id="sidebarUserName">User</div>
-                    <div class="user-role" id="sidebarUserRole">role</div>
-                </div>
-                <button id="logoutBtn" class="logout-btn">Logout</button>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="header">
-                <h2 id="pageTitle">Dashboard</h2>
-                <div id="headerExtra"></div>
-            </div>
-
-            <!-- Content Area -->
-            <div class="content-area">
-                <!-- Dashboard View -->
-                <div id="dashboardView" class="view-content">
-                    <div class="progress-section">
-                        <h3 style="color: var(--navy); margin-bottom: 0.5rem;">Overall Progress</h3>
-                        <div class="progress-bar">
-                            <div id="progressFill" class="progress-fill"></div>
-                        </div>
-                        <div style="font-size: 0.9rem; color: var(--dark-gray);">
-                            <span id="progressText">0% complete</span>
-                        </div>
-                    </div>
-
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="statDone">0</div>
-                            <div class="stat-label">Done</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statInProgress">0</div>
-                            <div class="stat-label">In Progress</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statNotStarted">0</div>
-                            <div class="stat-label">Not Started</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statTotal">0</div>
-                            <div class="stat-label">Total Tasks</div>
-                        </div>
-                    </div>
-
-                    <div class="filter-chips">
-                        <div class="chip active" data-filter="all">All</div>
-                        <div class="chip" data-filter="not-started">Not Started</div>
-                        <div class="chip" data-filter="in-progress">In Progress</div>
-                        <div class="chip" data-filter="done">Done</div>
-                    </div>
-
-                    <div id="phasesContainer" class="phases-list"></div>
-                </div>
-
-                <!-- Tasks (Forwarded Items) View -->
-                <div id="tasksView" class="view-content hidden">
-                    <div class="forwarded-container">
-                        <div class="forwarded-list" style="flex: 1;">
-                            <div class="forwarded-filter">
-                                <div class="chip active" data-forwarded-filter="pending">Pending</div>
-                                <div class="chip" data-forwarded-filter="all">All</div>
-                            </div>
-                            <div id="forwardedItemsContainer"></div>
-                        </div>
+    <div id="appContainer" class="hidden">
+        <!-- Top Header -->
+        <div class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+            <div class="max-w-full px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img src="/logo.png" alt="MUST Logo" class="h-8">
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900">MUST — Odoo Academic Implementation Tracker</h1>
+                        <p class="text-xs text-gray-600">Multan University of Science & Technology</p>
                     </div>
                 </div>
-
-                <!-- Users View -->
-                <div id="usersView" class="view-content hidden">
-                    <div class="users-section">
-                        <div class="users-list">
-                            <h3 style="color: var(--navy); margin-bottom: 1.5rem;">Users</h3>
-                            <div id="usersContainer"></div>
-                        </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200">
+                        <div id="userBadge" class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"></div>
                         <div>
-                            <form id="createUserForm" class="create-user-form">
-                                <h3>Create New User</h3>
-                                <div class="form-group">
-                                    <label for="newUsername">Username</label>
-                                    <input type="text" id="newUsername" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="newDisplayName">Display Name</label>
-                                    <input type="text" id="newDisplayName" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="newRole">Role</label>
-                                    <select id="newRole" required>
-                                        <option value="admin">Admin</option>
-                                        <option value="registrar">Registrar</option>
-                                        <option value="coe">CoE</option>
-                                        <option value="vc">VC</option>
-                                        <option value="dean">Dean</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="newEmail">Email</label>
-                                    <input type="email" id="newEmail" required>
-                                </div>
-                                <button type="submit" class="btn btn-primary" style="width: 100%;">Create User</button>
-                            </form>
+                            <p id="userDisplayName" class="text-sm font-semibold text-gray-900"></p>
+                            <p id="userRole" class="text-xs text-gray-600"></p>
                         </div>
                     </div>
+                    
+                    <button onclick="showChangePasswordModal()" class="p-2 hover:bg-gray-100 rounded-lg transition" title="Change Password">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.753 5.929l-.066-.066a6 6 0 010-8.486.5.5 0 00-.75.75 5 5 0 110 7.07l.75-.75a.5.5 0 00-.75-.75l-.066.066A6 6 0 0115 7zm6 0a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </button>
+                    
+                    <button onclick="loadRoadmap()" class="p-2 hover:bg-gray-100 rounded-lg transition" title="Refresh">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                    
+                    <button onclick="handleSignOut()" class="flex items-center gap-1 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition text-sm font-medium">
+                        → Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="bg-white border-b border-gray-200">
+            <div class="max-w-full px-6 flex gap-8">
+                <button onclick="switchTab('roadmap')" class="roadmapTab py-3 px-1 border-b-2 border-transparent text-gray-700 font-medium hover:text-blue-700 hover:border-blue-200 transition">
+                    Roadmap
+                </button>
+                <button onclick="switchTab('tasks')" class="tasksTab py-3 px-1 border-b-2 border-transparent text-gray-700 font-medium hover:text-blue-700 hover:border-blue-200 transition">
+                    Tasks
+                </button>
+                <button onclick="switchTab('dashboard')" class="dashboardTab py-3 px-1 border-b-2 border-transparent text-gray-700 font-medium hover:text-blue-700 hover:border-blue-200 transition">
+                    Dashboard
+                </button>
+                <button id="usersTabBtn" onclick="switchTab('users')" class="usersTab py-3 px-1 border-b-2 border-transparent text-gray-700 font-medium hover:text-blue-700 hover:border-blue-200 transition hidden">
+                    Users
+                </button>
+            </div>
+        </div>
+        
+        <!-- Content Area -->
+        <div class="max-w-full px-6 py-6">
+            <!-- Roadmap Tab -->
+            <div id="roadmapTab" class="hidden">
+                <!-- Stats Row -->
+                <div class="grid grid-cols-5 gap-4 mb-6">
+                    <div class="bg-white border border-gray-200 rounded-xl p-4">
+                        <p class="text-3xl font-bold text-blue-600" id="statOverall">0%</p>
+                        <p class="text-sm text-gray-600 font-medium">Overall Progress</p>
+                        <div class="mt-2 bg-gray-200 rounded-full h-2">
+                            <div id="statOverallBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-xl p-4">
+                        <p class="text-3xl font-bold text-green-600" id="statCompleted">0</p>
+                        <p class="text-sm text-gray-600 font-medium">Completed</p>
+                        <p class="text-xs text-gray-500 mt-1">Tasks done</p>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-xl p-4">
+                        <p class="text-3xl font-bold text-amber-500" id="statInProgress">0</p>
+                        <p class="text-sm text-gray-600 font-medium">In Progress</p>
+                        <p class="text-xs text-gray-500 mt-1">Currently working</p>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-xl p-4">
+                        <p class="text-3xl font-bold text-gray-600" id="statNotStarted">0</p>
+                        <p class="text-sm text-gray-600 font-medium">Not Started</p>
+                        <p class="text-xs text-gray-500 mt-1">Pending</p>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-xl p-4">
+                        <p class="text-3xl font-bold text-purple-600" id="statForwarded">0</p>
+                        <p class="text-sm text-gray-600 font-medium">Forwarded Items</p>
+                        <p class="text-xs text-gray-500 mt-1">Pending approval</p>
+                    </div>
+                </div>
+                
+                <!-- Category Legend -->
+                <div class="flex gap-6 mb-6 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full" style="background-color: #d97706;"></div>
+                        <span class="text-sm text-gray-700">Policy</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full" style="background-color: #2563eb;"></div>
+                        <span class="text-sm text-gray-700">Document</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full" style="background-color: #059669;"></div>
+                        <span class="text-sm text-gray-700">Odoo Config</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full" style="background-color: #dc2626;"></div>
+                        <span class="text-sm text-gray-700">Immediate Action</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full" style="background-color: #6b7280;"></div>
+                        <span class="text-sm text-gray-700">Approval Authority</span>
+                    </div>
+                </div>
+                
+                <!-- Phase Cards -->
+                <div id="phasesContainer" class="space-y-4">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+            
+            <!-- Tasks Tab (Forwarded Items) -->
+            <div id="tasksTab" class="hidden">
+                <div class="mb-6 flex gap-2">
+                    <button onclick="filterForwarded('pending')" class="filterBtn px-4 py-2 rounded-lg font-medium text-sm border border-gray-300 bg-white hover:bg-gray-50 transition">
+                        Pending
+                    </button>
+                    <button onclick="filterForwarded('all')" class="filterBtn px-4 py-2 rounded-lg font-medium text-sm border border-gray-300 bg-white hover:bg-gray-50 transition">
+                        All
+                    </button>
+                </div>
+                
+                <div id="forwardedItemsContainer" class="space-y-4">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+            
+            <!-- Dashboard Tab -->
+            <div id="dashboardTab" class="hidden">
+                <div class="space-y-4" id="dashboardContainer">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+            
+            <!-- Users Tab (Admin Only) -->
+            <div id="usersTab" class="hidden">
+                <div class="mb-6">
+                    <button onclick="showCreateUserForm()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                        + Create New User
+                    </button>
+                </div>
+                
+                <div id="usersContainer" class="space-y-3">
+                    <!-- Dynamically populated -->
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Force Change Password Modal -->
-    <div id="forcePasswordModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Change Password</h3>
+    
+    <!-- Force Password Change Modal -->
+    <div id="forcePasswordModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Change Password</h2>
+            <p class="text-gray-600 mb-4">You must change your password on first login.</p>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                <input type="password" id="newPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
-            <div class="modal-body">
-                <p style="margin-bottom: 1.5rem; color: var(--dark-gray);">
-                    You must change your password before proceeding.
-                </p>
-                <div id="passwordError" class="error-message hidden"></div>
-                <div class="form-group">
-                    <label for="newPasswordInput">New Password</label>
-                    <input type="password" id="newPasswordInput" required>
-                </div>
-                <div class="form-group">
-                    <label for="confirmPasswordInput">Confirm Password</label>
-                    <input type="password" id="confirmPasswordInput" required>
-                </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                <input type="password" id="confirmPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
-            <div class="modal-footer">
-                <button type="button" id="changePasswordBtn" class="btn btn-primary">Change Password</button>
-            </div>
+            
+            <button onclick="submitPasswordChange()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                Change Password
+            </button>
         </div>
     </div>
-
-    <!-- Forward Modal -->
-    <div id="forwardModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Forward for Approval</h3>
-                <button type="button" class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="forwardError" class="error-message hidden"></div>
-                <div class="form-group">
-                    <label for="forwardTitle">Title</label>
-                    <input type="text" id="forwardTitle" required>
-                </div>
-                <div class="form-group">
-                    <label for="forwardDescription">Description</label>
-                    <textarea id="forwardDescription" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--medium-gray); border-radius: 4px; font-family: inherit; min-height: 100px;"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="forwardTo">Forward To</label>
-                    <select id="forwardTo" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--medium-gray); border-radius: 4px; font-size: 0.95rem;">
-                        <option value="">Select person...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="forwardDueDate">Due Date</label>
-                    <input type="date" id="forwardDueDate">
-                </div>
-                <div class="form-group">
-                    <label for="forwardFile">Attachment (optional, max 5MB)</label>
-                    <input type="file" id="forwardFile">
-                </div>
-                <div id="fileInfo" style="font-size: 0.85rem; color: var(--dark-gray);"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary modal-close">Cancel</button>
-                <button type="button" id="forwardSubmitBtn" class="btn btn-primary">Forward</button>
-            </div>
+    
+    <!-- Generic Modal -->
+    <div id="genericModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+            <h2 id="modalTitle" class="text-xl font-bold text-gray-900 mb-4"></h2>
+            <div id="modalContent" class="mb-6"></div>
+            <div id="modalActions" class="flex gap-3 justify-end"></div>
         </div>
     </div>
-
+    
     <script>
+        // Role configuration
+        const ROLE_CONFIG = {
+            admin: { label: "System Administrator", color: "#6366f1" },
+            registrar: { label: "Registrar", color: "#059669" },
+            coe: { label: "Controller of Examinations", color: "#2563eb" },
+            vc: { label: "Vice Chancellor", color: "#d97706" },
+            dean: { label: "Dean", color: "#7c3aed" }
+        };
+        
+        // Task categories
+        const TASK_CATEGORIES = {
+            policy: { bg: "#fffbeb", color: "#d97706", border: "#fde68a", label: "Policy" },
+            doc: { bg: "#eff6ff", color: "#2563eb", border: "#bfdbfe", label: "Document" },
+            odoo: { bg: "#ecfdf5", color: "#059669", border: "#a7f3d0", label: "Odoo Config" },
+            action: { bg: "#fef2f2", color: "#dc2626", border: "#fecaca", label: "Immediate Action" },
+            authority: { bg: "#f9fafb", color: "#6b7280", border: "#e5e7eb", label: "Approval Authority" }
+        };
+        
+        // Task statuses
+        const TASK_STATUSES = {
+            done: { bg: "#ecfdf5", color: "#059669", border: "#a7f3d0", label: "Completed" },
+            "in-progress": { bg: "#eff6ff", color: "#2563eb", border: "#bfdbfe", label: "In Progress" },
+            "not-started": { bg: "#f9fafb", color: "#6b7280", border: "#e5e7eb", label: "Not Started" }
+        };
+        
+        // Phase colors
+        const PHASE_COLORS = [
+            "#ef4444", "#f59e0b", "#f59e0b", "#3b82f6", "#3b82f6",
+            "#10b981", "#10b981", "#3b82f6", "#3b82f6", "#10b981",
+            "#10b981", "#6b7280", "#6b7280"
+        ];
+        
         // Global state
-        const state = {
-            currentUser: null,
-            token: null,
-            phases: [],
-            forwardedItems: [],
-            users: [],
-            currentView: 'dashboard',
-            currentFilter: 'all',
-            currentForwardedFilter: 'pending',
-            forwardingTaskId: null,
-            forwardType: null
-        };
-
-        // Token management
-        function setToken(token) {
-            state.token = token;
-            document.getElementById('__app_token').value = token;
-        }
-
-        function getToken() {
-            return state.token || document.getElementById('__app_token').value;
-        }
-
-        // Monkey-patch fetch to include Authorization header
-        const originalFetch = window.fetch;
-        window.fetch = function(...args) {
-            const token = getToken();
+        let currentUser = null;
+        let allPhases = [];
+        let forwardedFilter = 'pending';
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+        
+        async function init() {
+            // Set up fetch interception for auth token
+            interceptFetch();
+            
+            // Load available users
+            await loadAvailableUsers();
+            
+            // Check if already logged in
+            const token = localStorage.getItem('authToken');
             if (token) {
-                if (!args[1]) args[1] = {};
-                if (!args[1].headers) args[1].headers = {};
-                args[1].headers.Authorization = `Bearer ${token}`;
-            }
-            return originalFetch.apply(this, args).then(response => {
-                if (response.status === 401) {
-                    logout();
+                document.getElementById('__app_token').value = token;
+                const user = JSON.parse(localStorage.getItem('currentUser'));
+                if (user) {
+                    currentUser = user;
+                    showApp();
+                    await loadRoadmap();
+                    return;
                 }
-                return response;
-            });
-        };
-
-        // API calls
-        async function login(username, password) {
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Login failed');
             }
-            return response.json();
         }
-
-        async function getPhases() {
-            const response = await fetch('/api/phases');
-            if (!response.ok) throw new Error('Failed to fetch phases');
-            return response.json();
+        
+        function interceptFetch() {
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                const url = args[0];
+                const options = args[1] || {};
+                
+                // Add token to Authorization header if not GET request to public endpoint
+                if (document.getElementById('__app_token').value && !url.includes('/api/users/public') && !url.includes('/api/login')) {
+                    options.headers = options.headers || {};
+                    options.headers['Authorization'] = 'Bearer ' + document.getElementById('__app_token').value;
+                }
+                
+                return originalFetch.apply(this, [url, options]);
+            };
         }
-
-        async function updateTaskStatus(taskId, status) {
-            const response = await fetch(`/api/tasks/${taskId}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
-            });
-            if (!response.ok) throw new Error('Failed to update task');
-            return response.json();
-        }
-
-        async function forwardTask(taskId, forwardType, data) {
-            const response = await fetch(`/api/tasks/${taskId}/forward`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ forwardType, ...data })
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Forward failed');
+        
+        async function loadAvailableUsers() {
+            try {
+                const res = await fetch('/api/users/public');
+                const data = await res.json();
+                
+                const select = document.getElementById('loginUsername');
+                data.users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.username;
+                    option.textContent = `${user.display_name} (${ROLE_CONFIG[user.role]?.label || user.role})`;
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                console.error('Failed to load users:', e);
             }
-            return response.json();
         }
-
-        async function getForwardedItems() {
-            const response = await fetch('/api/forwarded');
-            if (!response.ok) throw new Error('Failed to fetch forwarded items');
-            return response.json();
-        }
-
-        async function respondForwarded(itemId, status, note) {
-            const response = await fetch(`/api/forwarded/${itemId}/respond`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status, note })
-            });
-            if (!response.ok) throw new Error('Failed to respond');
-            return response.json();
-        }
-
-        async function dismissForwarded(itemId) {
-            const response = await fetch(`/api/forwarded/${itemId}/dismiss`, {
-                method: 'POST'
-            });
-            if (!response.ok) throw new Error('Failed to dismiss');
-            return response.json();
-        }
-
-        async function resetTask(taskId) {
-            const response = await fetch(`/api/tasks/${taskId}/reset`, {
-                method: 'POST'
-            });
-            if (!response.ok) throw new Error('Failed to reset task');
-            return response.json();
-        }
-
-        async function getUsers() {
-            const response = await fetch('/api/users');
-            if (!response.ok) throw new Error('Failed to fetch users');
-            return response.json();
-        }
-
-        async function createUser(username, displayName, role, email) {
-            const response = await fetch('/api/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, displayName, role, email })
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to create user');
+        
+        async function handleLogin() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                alert('Please select a user and enter password');
+                return;
             }
-            return response.json();
-        }
-
-        async function resetUserPassword(userId) {
-            const response = await fetch(`/api/users/${userId}/reset-password`, {
-                method: 'POST'
-            });
-            if (!response.ok) throw new Error('Failed to reset password');
-            return response.json();
-        }
-
-        async function forceChangePassword(newPassword) {
-            const response = await fetch('/api/force-change-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newPassword })
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to change password');
+            
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (!res.ok) throw new Error('Invalid credentials');
+                
+                const data = await res.json();
+                currentUser = data.user;
+                
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                document.getElementById('__app_token').value = data.token;
+                
+                showApp();
+                
+                // Check if password change is needed
+                if (currentUser.force_change_password) {
+                    document.getElementById('forcePasswordModal').classList.remove('hidden');
+                } else {
+                    await loadRoadmap();
+                }
+            } catch (e) {
+                alert('Login failed: ' + e.message);
             }
-            return response.json();
         }
-
-        // UI Functions
-        function showLoginScreen() {
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('appContainer').classList.add('hidden');
-        }
-
+        
         function showApp() {
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('appContainer').classList.remove('hidden');
-        }
-
-        function logout() {
-            state.currentUser = null;
-            state.token = null;
-            setToken('');
-            showLoginScreen();
-        }
-
-        function switchView(viewName) {
-            state.currentView = viewName;
-            document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-
-            if (viewName === 'dashboard') {
-                document.getElementById('dashboardView').classList.remove('hidden');
-                document.querySelector('[data-view="dashboard"]').classList.add('active');
-                document.getElementById('pageTitle').textContent = 'Dashboard';
-                renderDashboard();
-            } else if (viewName === 'tasks') {
-                document.getElementById('tasksView').classList.remove('hidden');
-                document.querySelector('[data-view="tasks"]').classList.add('active');
-                document.getElementById('pageTitle').textContent = 'Forwarded Tasks';
-                renderForwardedItems();
-            } else if (viewName === 'users') {
-                document.getElementById('usersView').classList.remove('hidden');
-                document.querySelector('[data-view="users"]').classList.add('active');
-                document.getElementById('pageTitle').textContent = 'Users';
-                renderUsers();
+            
+            // Update user info
+            const config = ROLE_CONFIG[currentUser.role];
+            document.getElementById('userBadge').style.backgroundColor = config.color;
+            document.getElementById('userBadge').textContent = currentUser.display_name.charAt(0).toUpperCase();
+            document.getElementById('userDisplayName').textContent = currentUser.display_name;
+            document.getElementById('userRole').textContent = config.label;
+            
+            // Show users tab if admin
+            if (currentUser.role === 'admin') {
+                document.getElementById('usersTabBtn').classList.remove('hidden');
             }
         }
-
-        function renderDashboard() {
-            const progress = state.phases[0]?.progress || { total: 0, done: 0, inProgress: 0, notStarted: 0 };
-            const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
-
-            document.getElementById('progressFill').style.width = pct + '%';
-            document.getElementById('progressText').textContent = pct + '% complete';
-            document.getElementById('statDone').textContent = progress.done;
-            document.getElementById('statInProgress').textContent = progress.inProgress;
-            document.getElementById('statNotStarted').textContent = progress.notStarted;
-            document.getElementById('statTotal').textContent = progress.total;
-
-            renderPhasesCards();
+        
+        async function submitPasswordChange() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (newPassword !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                alert('Password must be at least 6 characters');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/force-change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ newPassword })
+                });
+                
+                if (!res.ok) throw new Error('Failed to change password');
+                
+                document.getElementById('forcePasswordModal').classList.add('hidden');
+                currentUser.force_change_password = false;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                await loadRoadmap();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
         }
-
-        function renderPhasesCards() {
+        
+        function showChangePasswordModal() {
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('forcePasswordModal').classList.remove('hidden');
+        }
+        
+        async function loadRoadmap() {
+            try {
+                const res = await fetch('/api/phases');
+                const data = await res.json();
+                
+                allPhases = data.phases;
+                
+                // Update stats
+                document.getElementById('statOverall').textContent = data.progress.pctDone + '%';
+                document.getElementById('statOverallBar').style.width = data.progress.pctDone + '%';
+                document.getElementById('statCompleted').textContent = data.progress.done;
+                document.getElementById('statInProgress').textContent = data.progress.inProgress;
+                document.getElementById('statNotStarted').textContent = data.progress.notStarted;
+                
+                // Load forwarded items count
+                const forwardedRes = await fetch('/api/forwarded');
+                const forwardedData = await forwardedRes.json();
+                document.getElementById('statForwarded').textContent = forwardedData.forwardedItems.length;
+                
+                // Render phases
+                renderPhases();
+                
+                // Render dashboard
+                renderDashboard();
+            } catch (e) {
+                console.error('Failed to load phases:', e);
+            }
+        }
+        
+        function renderPhases() {
             const container = document.getElementById('phasesContainer');
             container.innerHTML = '';
-            const filter = state.currentFilter;
-
-            state.phases.forEach(phase => {
-                const filteredTasks = phase.tasks.filter(task => {
-                    if (filter === 'all') return true;
-                    return task.status === filter;
-                });
-
-                const phaseCard = document.createElement('div');
-                phaseCard.className = 'phase-card';
-
-                const doneTasks = phase.tasks.filter(t => t.status === 'done').length;
+            
+            allPhases.forEach((phase, idx) => {
+                const color = PHASE_COLORS[phase.phase_number - 1] || '#6b7280';
                 const totalTasks = phase.tasks.length;
-
-                let phaseColor = '#E8792B';
-                if (phase.phase_number === 1) phaseColor = '#E8792B';
-                else if (phase.phase_number === 2) phaseColor = '#1B3A5C';
-                else if (phase.phase_number === 3) phaseColor = '#d4a574';
-
-                const header = document.createElement('div');
-                header.className = 'phase-header';
-                header.innerHTML = `
-                    <span class="phase-toggle">›</span>
-                    <span class="phase-badge" style="background-color: ${phaseColor};">${phase.phase_number}</span>
-                    <div class="phase-title">
-                        <h3>${phase.title}</h3>
-                        <div class="phase-subtitle">${phase.subtitle}</div>
-                        <div class="phase-timeline">${phase.timeline}</div>
+                const doneTasks = phase.tasks.filter(t => t.status === 'done').length;
+                const inProgressTasks = phase.tasks.filter(t => t.status === 'in-progress').length;
+                
+                let phaseStatus = 'not-started';
+                let statusLabel = 'Not Started';
+                let statusBg = '#f9fafb';
+                let statusColor = '#6b7280';
+                
+                if (doneTasks === totalTasks) {
+                    phaseStatus = 'done';
+                    statusLabel = 'Completed';
+                    statusBg = '#ecfdf5';
+                    statusColor = '#059669';
+                } else if (inProgressTasks > 0 || doneTasks > 0) {
+                    phaseStatus = 'in-progress';
+                    statusLabel = 'In Progress';
+                    statusBg = '#eff6ff';
+                    statusColor = '#2563eb';
+                }
+                
+                const pctDone = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+                
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-gray-200 rounded-xl overflow-hidden';
+                card.innerHTML = `
+                    <button onclick="togglePhaseExpand(${idx})" class="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50 transition text-left">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style="background-color: ${color};">
+                                ${phase.phase_number}
+                            </div>
+                            
+                            <div class="flex-1">
+                                <h3 class="font-bold text-gray-900">${phase.title}</h3>
+                                <p class="text-sm text-gray-600">${phase.subtitle || ''}</p>
+                            </div>
+                            
+                            <div class="px-2 py-1 rounded text-xs font-medium" style="background-color: ${statusBg}; color: ${statusColor};">
+                                ${statusLabel}
+                            </div>
+                            
+                            <div class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                                ${phase.timeline || ''}
+                            </div>
+                            
+                            <div class="text-xs font-medium text-gray-600">
+                                ${doneTasks}/${totalTasks}
+                            </div>
+                        </div>
+                        
+                        <svg class="phaseChevron w-5 h-5 text-gray-400 ml-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                        </svg>
+                    </button>
+                    
+                    <div class="phaseBody hidden border-t border-gray-200">
+                        <div class="px-4 py-4 space-y-6">
+                            <!-- Tasks will be rendered here -->
+                        </div>
+                        
+                        ${phase.note ? `
+                            <div class="mx-4 mb-4 px-4 py-3 bg-amber-50 border-l-4 border-amber-400 text-sm text-amber-800">
+                                <strong>Phase Note:</strong> ${phase.note}
+                            </div>
+                        ` : ''}
                     </div>
-                    <span class="phase-progress">${doneTasks}/${totalTasks}</span>
                 `;
-
-                header.addEventListener('click', () => {
-                    header.classList.toggle('expanded');
-                    body.classList.toggle('expanded');
-                    header.querySelector('.phase-toggle').classList.toggle('expanded');
+                
+                container.appendChild(card);
+                
+                // Render tasks in the body
+                const taskBody = card.querySelector('.phaseBody > div');
+                const tasksBySection = {};
+                
+                phase.tasks.forEach(task => {
+                    const section = task.section_label || 'Other';
+                    if (!tasksBySection[section]) tasksBySection[section] = [];
+                    tasksBySection[section].push(task);
                 });
-
-                const body = document.createElement('div');
-                body.className = 'phase-body';
-
-                const sections = new Map();
-                filteredTasks.forEach(task => {
-                    if (!sections.has(task.section_label)) {
-                        sections.set(task.section_label, []);
-                    }
-                    sections.get(task.section_label).push(task);
-                });
-
-                sections.forEach((tasks, sectionLabel) => {
-                    const section = document.createElement('div');
-                    section.className = 'section';
-
-                    const sectionTitle = document.createElement('div');
-                    sectionTitle.className = 'section-title';
-                    sectionTitle.textContent = sectionLabel;
-                    section.appendChild(sectionTitle);
-
+                
+                Object.entries(tasksBySection).forEach(([section, tasks]) => {
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.innerHTML = `<h4 class="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3">${section}</h4>`;
+                    
                     tasks.forEach(task => {
-                        const row = document.createElement('div');
-                        row.className = `task-row ${task.category || 'policy'}`;
-
-                        let statusIcon = '◯';
-                        let statusClass = '';
-                        if (task.status === 'in-progress') {
-                            statusClass = 'in-progress';
-                        } else if (task.status === 'done') {
-                            statusIcon = '✓';
-                            statusClass = 'done';
-                        }
-
-                        let completedInfo = '';
-                        if (task.status === 'done' && task.completed_by && task.completed_date) {
-                            completedInfo = `<div class="task-completed">Completed by ${task.completed_by} on ${new Date(task.completed_date).toLocaleDateString()}</div>`;
-                        }
-
-                        row.innerHTML = `
-                            <div class="task-status-icon ${statusClass}" data-task-id="${task.id}">${statusIcon}</div>
-                            <div class="task-label">
-                                <div class="task-label-text">${task.label}</div>
-                                ${completedInfo}
+                        const taskCat = TASK_CATEGORIES[task.category] || TASK_CATEGORIES.authority;
+                        const taskStatus = TASK_STATUSES[task.status] || TASK_STATUSES['not-started'];
+                        
+                        let statusIcon = '○';
+                        if (task.status === 'done') statusIcon = '✓';
+                        else if (task.status === 'in-progress') statusIcon = '◐';
+                        
+                        const canEdit = ['admin', 'registrar', 'coe'].includes(currentUser.role);
+                        
+                        const taskRow = document.createElement('div');
+                        taskRow.className = 'flex items-center gap-3 py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition';
+                        taskRow.innerHTML = `
+                            <span class="text-lg" style="color: ${taskStatus.color};">${statusIcon}</span>
+                            <span class="flex-1 text-gray-800">${task.label}</span>
+                            <div class="px-2 py-1 rounded text-xs font-medium" style="background-color: ${taskCat.bg}; color: ${taskCat.color}; border: 1px solid ${taskCat.border};">
+                                ${taskCat.label}
                             </div>
-                            <div class="task-actions">
-                                <button class="task-menu-btn" data-task-id="${task.id}" title="More actions">⋮</button>
+                            <div class="px-2 py-1 rounded text-xs font-medium" style="background-color: ${taskStatus.bg}; color: ${taskStatus.color}; border: 1px solid ${taskStatus.border};">
+                                ${taskStatus.label}
                             </div>
+                            ${canEdit ? `
+                                <select onchange="updateTaskStatus(${task.id}, this.value)" class="text-xs border border-gray-300 rounded px-2 py-1">
+                                    <option value="not-started" ${task.status === 'not-started' ? 'selected' : ''}>Not Started</option>
+                                    <option value="in-progress" ${task.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
+                                    <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
+                                </select>
+                            ` : ''}
+                            <button onclick="showTaskActions(${task.id})" class="p-1 hover:bg-white rounded transition">
+                                ⋮
+                            </button>
                         `;
-
-                        row.querySelector('.task-status-icon').addEventListener('click', async (e) => {
-                            e.stopPropagation();
-                            const nextStatus = task.status === 'not-started' ? 'in-progress' : task.status === 'in-progress' ? 'done' : 'not-started';
-                            try {
-                                await updateTaskStatus(task.id, nextStatus);
-                                await loadPhases();
-                                renderDashboard();
-                            } catch (err) {
-                                alert('Error: ' + err.message);
-                            }
-                        });
-
-                        row.querySelector('.task-menu-btn').addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            showTaskMenu(task, e.target);
-                        });
-
-                        section.appendChild(row);
+                        sectionDiv.appendChild(taskRow);
                     });
-
-                    body.appendChild(section);
+                    
+                    taskBody.appendChild(sectionDiv);
                 });
-
-                if (phase.note) {
-                    const noteDiv = document.createElement('div');
-                    noteDiv.className = 'phase-note';
-                    noteDiv.textContent = phase.note;
-                    body.appendChild(noteDiv);
-                }
-
-                phaseCard.appendChild(header);
-                phaseCard.appendChild(body);
-                container.appendChild(phaseCard);
             });
         }
-
-        function showTaskMenu(task, button) {
-            const existingMenu = document.querySelector('.task-menu.active');
-            if (existingMenu) existingMenu.remove();
-
-            const menu = document.createElement('div');
-            menu.className = 'task-menu active';
-
-            const rect = button.getBoundingClientRect();
-            menu.style.position = 'fixed';
-            menu.style.top = (rect.bottom + 5) + 'px';
-            menu.style.left = (rect.left - 150) + 'px';
-
-            const approvalItem = document.createElement('button');
-            approvalItem.className = 'task-menu-item';
-            approvalItem.textContent = 'Forward for Approval';
-            approvalItem.addEventListener('click', () => {
-                showForwardModal(task, 'approval');
-                menu.remove();
-            });
-            menu.appendChild(approvalItem);
-
-            const actionItem = document.createElement('button');
-            actionItem.className = 'task-menu-item';
-            actionItem.textContent = 'Forward for Action';
-            actionItem.addEventListener('click', () => {
-                showForwardModal(task, 'action');
-                menu.remove();
-            });
-            menu.appendChild(actionItem);
-
-            if (state.currentUser.role === 'admin') {
-                menu.appendChild(document.createElement('div')).style.borderBottom = '1px solid var(--medium-gray)';
-                const resetItem = document.createElement('button');
-                resetItem.className = 'task-menu-item danger';
-                resetItem.textContent = 'Reset Task';
-                resetItem.addEventListener('click', async () => {
-                    if (confirm('Are you sure?')) {
-                        try {
-                            await resetTask(task.id);
-                            await loadPhases();
-                            renderDashboard();
-                        } catch (err) {
-                            alert('Error: ' + err.message);
-                        }
-                    }
-                    menu.remove();
-                });
-                menu.appendChild(resetItem);
-            }
-
-            document.body.appendChild(menu);
-
-            document.addEventListener('click', (e) => {
-                if (e.target !== button && !menu.contains(e.target)) {
-                    menu.remove();
-                }
-            }, { once: true });
+        
+        function togglePhaseExpand(idx) {
+            const cards = document.querySelectorAll('#phasesContainer > div');
+            const card = cards[idx];
+            const body = card.querySelector('.phaseBody');
+            const chevron = card.querySelector('.phaseChevron');
+            
+            body.classList.toggle('hidden');
+            chevron.style.transform = body.classList.contains('hidden') ? 'rotate(0)' : 'rotate(180deg)';
         }
-
-        function showForwardModal(task, forwardType) {
-            state.forwardingTaskId = task.id;
-            state.forwardType = forwardType;
-            document.getElementById('forwardTitle').value = task.label;
-            document.getElementById('forwardDescription').value = '';
-            document.getElementById('forwardDueDate').value = '';
-            document.getElementById('forwardFile').value = '';
-            document.getElementById('fileInfo').textContent = '';
-            document.getElementById('forwardError').classList.add('hidden');
-            document.getElementById('forwardModal').classList.add('active');
-        }
-
-        function renderForwardedItems() {
-            const container = document.getElementById('forwardedItemsContainer');
-            container.innerHTML = '';
-
-            const filter = state.currentForwardedFilter;
-            let filtered = state.forwardedItems;
-
-            if (filter === 'pending') {
-                filtered = state.forwardedItems.filter(item => ['pending-approval', 'pending-action'].includes(item.status));
-            }
-
-            if (filtered.length === 0) {
-                container.innerHTML = '<p style="color: var(--dark-gray); padding: 2rem;">No items</p>';
-                return;
-            }
-
-            filtered.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'forwarded-item';
-
-                const now = new Date();
-                const dueDate = item.dueDate ? new Date(item.dueDate) : null;
-                const isOverdue = dueDate && dueDate < now && ['pending-approval', 'pending-action'].includes(item.status);
-
-                if (isOverdue) {
-                    card.classList.add('overdue');
-                }
-
-                let statusText = item.status.replace(/([A-Z])/g, ' $1').trim();
-                statusText = statusText.charAt(0).toUpperCase() + statusText.slice(1);
-
-                card.innerHTML = `
-                    <div class="forwarded-header">
-                        <div class="forwarded-title">${item.title}</div>
-                        <span class="forwarded-status-badge ${item.status.replace('-', '')}">${statusText}</span>
-                    </div>
-                    ${isOverdue ? '<div class="forwarded-overdue">⚠ Overdue</div>' : ''}
-                    <div class="forwarded-meta">
-                        <div><strong>From:</strong> ${item.forwardedBy}</div>
-                        <div><strong>To:</strong> ${item.forwardTo}</div>
-                        ${item.dueDate ? `<div><strong>Due:</strong> ${new Date(item.dueDate).toLocaleDateString()}</div>` : ''}
-                    </div>
-                    <div class="forwarded-description">${item.description}</div>
-                    <div id="actions-${item.id}"></div>
-                `;
-
-                const actionsDiv = card.querySelector(`#actions-${item.id}`);
-
-                if (['pending-approval', 'pending-action'].includes(item.status)) {
-                    const noteInput = document.createElement('textarea');
-                    noteInput.className = 'forwarded-note-input';
-                    noteInput.placeholder = 'Add a note...';
-                    actionsDiv.appendChild(noteInput);
-
-                    const buttonsDiv = document.createElement('div');
-                    buttonsDiv.className = 'forwarded-actions';
-
-                    if (item.status === 'pending-approval') {
-                        const approveBtn = document.createElement('button');
-                        approveBtn.className = 'btn btn-primary';
-                        approveBtn.textContent = 'Approve';
-                        approveBtn.addEventListener('click', async () => {
-                            try {
-                                await respondForwarded(item.id, 'approved', noteInput.value);
-                                await loadForwardedItems();
-                                renderForwardedItems();
-                            } catch (err) {
-                                alert('Error: ' + err.message);
-                            }
-                        });
-                        buttonsDiv.appendChild(approveBtn);
-
-                        const rejectBtn = document.createElement('button');
-                        rejectBtn.className = 'btn btn-danger';
-                        rejectBtn.textContent = 'Reject';
-                        rejectBtn.addEventListener('click', async () => {
-                            try {
-                                await respondForwarded(item.id, 'rejected', noteInput.value);
-                                await loadForwardedItems();
-                                renderForwardedItems();
-                            } catch (err) {
-                                alert('Error: ' + err.message);
-                            }
-                        });
-                        buttonsDiv.appendChild(rejectBtn);
-                    } else if (item.status === 'pending-action') {
-                        const doneBtn = document.createElement('button');
-                        doneBtn.className = 'btn btn-primary';
-                        doneBtn.textContent = 'Mark Done';
-                        doneBtn.addEventListener('click', async () => {
-                            try {
-                                await respondForwarded(item.id, 'done', noteInput.value);
-                                await loadForwardedItems();
-                                renderForwardedItems();
-                            } catch (err) {
-                                alert('Error: ' + err.message);
-                            }
-                        });
-                        buttonsDiv.appendChild(doneBtn);
-
-                        const declineBtn = document.createElement('button');
-                        declineBtn.className = 'btn btn-danger';
-                        declineBtn.textContent = 'Decline';
-                        declineBtn.addEventListener('click', async () => {
-                            try {
-                                await respondForwarded(item.id, 'declined', noteInput.value);
-                                await loadForwardedItems();
-                                renderForwardedItems();
-                            } catch (err) {
-                                alert('Error: ' + err.message);
-                            }
-                        });
-                        buttonsDiv.appendChild(declineBtn);
-                    }
-
-                    actionsDiv.appendChild(buttonsDiv);
-                } else if (item.status === 'rejected') {
-                    const reforwardBtn = document.createElement('button');
-                    reforwardBtn.className = 'btn btn-primary';
-                    reforwardBtn.textContent = 'Re-forward';
-                    reforwardBtn.addEventListener('click', () => {
-                        // Logic to re-forward
-                    });
-                    actionsDiv.appendChild(reforwardBtn);
-
-                    const dismissBtn = document.createElement('button');
-                    dismissBtn.className = 'btn btn-secondary';
-                    dismissBtn.textContent = 'Dismiss';
-                    dismissBtn.addEventListener('click', async () => {
-                        try {
-                            await dismissForwarded(item.id);
-                            await loadForwardedItems();
-                            renderForwardedItems();
-                        } catch (err) {
-                            alert('Error: ' + err.message);
-                        }
-                    });
-                    actionsDiv.appendChild(dismissBtn);
-                }
-
-                container.appendChild(card);
-            });
-        }
-
-        function renderUsers() {
-            const container = document.getElementById('usersContainer');
-            container.innerHTML = '';
-
-            state.users.forEach(user => {
-                const card = document.createElement('div');
-                card.className = 'user-card';
-
-                card.innerHTML = `
-                    <div class="user-card-info">
-                        <div class="user-card-name">${user.displayName}</div>
-                        <div class="user-card-email">${user.email}</div>
-                        <span class="user-role-badge">${user.role}</span>
-                    </div>
-                    <div class="user-card-actions">
-                        <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" data-user-id="${user.id}">Reset Password</button>
-                    </div>
-                `;
-
-                card.querySelector('button').addEventListener('click', async () => {
-                    if (confirm(`Reset password for ${user.displayName}?`)) {
-                        try {
-                            await resetUserPassword(user.id);
-                            alert('Password reset successful. User has been sent a temporary password.');
-                        } catch (err) {
-                            alert('Error: ' + err.message);
-                        }
-                    }
-                });
-
-                container.appendChild(card);
-            });
-        }
-
-        async function loadPhases() {
+        
+        async function updateTaskStatus(taskId, newStatus) {
             try {
-                const data = await getPhases();
-                state.phases = data.phases;
-            } catch (err) {
-                console.error('Error loading phases:', err);
+                const res = await fetch(`/api/tasks/${taskId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                if (!res.ok) throw new Error('Failed to update task');
+                
+                await loadRoadmap();
+            } catch (e) {
+                alert('Error: ' + e.message);
             }
         }
-
+        
+        function showTaskActions(taskId) {
+            const task = allPhases.flatMap(p => p.tasks).find(t => t.id === taskId);
+            
+            document.getElementById('modalTitle').textContent = 'Task Actions';
+            document.getElementById('modalContent').innerHTML = `<p>${task.label}</p>`;
+            
+            const actionsDiv = document.getElementById('modalActions');
+            actionsDiv.innerHTML = '';
+            
+            if (currentUser.role === 'admin') {
+                const resetBtn = document.createElement('button');
+                resetBtn.className = 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition';
+                resetBtn.textContent = 'Reset Task';
+                resetBtn.onclick = async () => {
+                    try {
+                        await fetch(`/api/tasks/${taskId}/reset`, { method: 'POST' });
+                        await loadRoadmap();
+                        document.getElementById('genericModal').classList.add('hidden');
+                    } catch (e) {
+                        alert('Error: ' + e.message);
+                    }
+                };
+                actionsDiv.appendChild(resetBtn);
+            }
+            
+            const forwardBtn = document.createElement('button');
+            forwardBtn.className = 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition';
+            forwardBtn.textContent = 'Forward for Approval';
+            forwardBtn.onclick = () => showForwardModal(taskId);
+            actionsDiv.appendChild(forwardBtn);
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition';
+            closeBtn.textContent = 'Close';
+            closeBtn.onclick = () => document.getElementById('genericModal').classList.add('hidden');
+            actionsDiv.appendChild(closeBtn);
+            
+            document.getElementById('genericModal').classList.remove('hidden');
+        }
+        
+        function showForwardModal(taskId) {
+            // Simple forwarding form
+            document.getElementById('genericModal').classList.add('hidden');
+            // TODO: Implement forward modal
+        }
+        
+        async function renderDashboard() {
+            const container = document.getElementById('dashboardContainer');
+            container.innerHTML = '';
+            
+            allPhases.forEach(phase => {
+                const totalTasks = phase.tasks.length;
+                const doneTasks = phase.tasks.filter(t => t.status === 'done').length;
+                const pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+                
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-gray-200 rounded-lg p-4';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-semibold text-gray-900">${phase.title}</h3>
+                        <span class="text-sm font-bold text-gray-600">${pct}%</span>
+                    </div>
+                    <div class="bg-gray-200 rounded-full h-3">
+                        <div class="bg-blue-600 h-3 rounded-full transition-all" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        function switchTab(tab) {
+            // Hide all tabs
+            document.getElementById('roadmapTab').classList.add('hidden');
+            document.getElementById('tasksTab').classList.add('hidden');
+            document.getElementById('dashboardTab').classList.add('hidden');
+            document.getElementById('usersTab').classList.add('hidden');
+            
+            // Remove active styling
+            document.querySelectorAll('.roadmapTab, .tasksTab, .dashboardTab, .usersTab').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-700');
+                btn.classList.add('border-transparent', 'text-gray-700');
+            });
+            
+            // Show selected tab
+            document.getElementById(tab + 'Tab').classList.remove('hidden');
+            
+            // Add active styling
+            const activeBtn = document.querySelector(`.${tab}Tab`);
+            activeBtn.classList.add('border-blue-500', 'text-blue-700');
+            activeBtn.classList.remove('border-transparent', 'text-gray-700');
+            
+            if (tab === 'tasks') {
+                loadForwardedItems();
+            } else if (tab === 'users') {
+                loadUsers();
+            }
+        }
+        
         async function loadForwardedItems() {
             try {
-                const data = await getForwardedItems();
-                state.forwardedItems = data.forwardedItems;
-            } catch (err) {
-                console.error('Error loading forwarded items:', err);
+                const res = await fetch('/api/forwarded');
+                const data = await res.json();
+                
+                const container = document.getElementById('forwardedItemsContainer');
+                container.innerHTML = '';
+                
+                let items = data.forwardedItems;
+                if (forwardedFilter === 'pending') {
+                    items = items.filter(item => item.status === 'pending');
+                }
+                
+                if (items.length === 0) {
+                    container.innerHTML = '<p class="text-gray-600">No forwarded items</p>';
+                    return;
+                }
+                
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white border border-gray-200 rounded-lg p-4';
+                    
+                    let actionButtons = '';
+                    if (item.forward_type === 'approval' && item.status === 'pending') {
+                        actionButtons = `
+                            <button onclick="respondForwarded(${item.id}, 'approved')" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition">Approve</button>
+                            <button onclick="respondForwarded(${item.id}, 'rejected')" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition">Reject</button>
+                        `;
+                    } else if (item.forward_type === 'action' && item.status === 'pending') {
+                        actionButtons = `
+                            <button onclick="respondForwarded(${item.id}, 'completed')" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition">Mark Done</button>
+                            <button onclick="respondForwarded(${item.id}, 'declined')" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition">Decline</button>
+                        `;
+                    } else if (item.status !== 'pending') {
+                        actionButtons = `
+                            <button onclick="dismissForwarded(${item.id})" class="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 transition">Dismiss</button>
+                        `;
+                    }
+                    
+                    card.innerHTML = `
+                        <h3 class="font-bold text-gray-900 mb-2">${item.title}</h3>
+                        <p class="text-sm text-gray-600 mb-3">${item.description}</p>
+                        <div class="text-xs text-gray-600 mb-3">
+                            <p>From: <strong>${item.forwarded_by}</strong></p>
+                            <p>To: <strong>${item.forwarded_to}</strong></p>
+                            ${item.due_date ? `<p>Due: <strong>${new Date(item.due_date).toLocaleDateString()}</strong></p>` : ''}
+                        </div>
+                        <div class="flex gap-2">${actionButtons}</div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load forwarded items:', e);
             }
         }
-
+        
+        async function respondForwarded(id, status) {
+            try {
+                await fetch(`/api/forwarded/${id}/respond`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                await loadForwardedItems();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+        
+        async function dismissForwarded(id) {
+            try {
+                await fetch(`/api/forwarded/${id}/dismiss`, { method: 'POST' });
+                await loadForwardedItems();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+        
+        function filterForwarded(filter) {
+            forwardedFilter = filter;
+            loadForwardedItems();
+        }
+        
         async function loadUsers() {
             try {
-                const data = await getUsers();
-                state.users = data.users;
-                renderUsers();
-            } catch (err) {
-                console.error('Error loading users:', err);
-            }
-        }
-
-        // Event listeners
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.classList.add('hidden');
-
-            try {
-                const result = await login(username, password);
-                setToken(result.token);
-                state.currentUser = result.user;
-
-                document.getElementById('sidebarUserName').textContent = result.user.displayName;
-                document.getElementById('sidebarUserRole').textContent = result.user.role;
-
-                if (result.user.role === 'admin') {
-                    document.getElementById('usersNavItem').classList.remove('hidden');
-                }
-
-                if (result.user.mustChangePassword) {
-                    showApp();
-                    document.getElementById('forcePasswordModal').classList.add('active');
-                } else {
-                    await loadPhases();
-                    await loadForwardedItems();
-                    showApp();
-                }
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-            }
-        });
-
-        document.getElementById('logoutBtn').addEventListener('click', logout);
-
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const view = e.target.getAttribute('data-view');
-                switchView(view);
-            });
-        });
-
-        document.querySelectorAll('[data-filter]').forEach(chip => {
-            chip.addEventListener('click', () => {
-                document.querySelectorAll('[data-filter]').forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                state.currentFilter = chip.getAttribute('data-filter');
-                renderPhasesCards();
-            });
-        });
-
-        document.querySelectorAll('[data-forwarded-filter]').forEach(chip => {
-            chip.addEventListener('click', () => {
-                document.querySelectorAll('[data-forwarded-filter]').forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                state.currentForwardedFilter = chip.getAttribute('data-forwarded-filter');
-                renderForwardedItems();
-            });
-        });
-
-        document.getElementById('changePasswordBtn').addEventListener('click', async () => {
-            const newPassword = document.getElementById('newPasswordInput').value;
-            const confirmPassword = document.getElementById('confirmPasswordInput').value;
-            const errorDiv = document.getElementById('passwordError');
-            errorDiv.classList.add('hidden');
-
-            if (!newPassword || newPassword !== confirmPassword) {
-                errorDiv.textContent = 'Passwords do not match or are empty';
-                errorDiv.classList.remove('hidden');
-                return;
-            }
-
-            try {
-                await forceChangePassword(newPassword);
-                document.getElementById('forcePasswordModal').classList.remove('active');
-                await loadPhases();
-                await loadForwardedItems();
-                renderDashboard();
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-            }
-        });
-
-        document.querySelectorAll('.modal-close').forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.closest('.modal').classList.remove('active');
-            });
-        });
-
-        document.getElementById('forwardModal').addEventListener('click', (e) => {
-            if (e.target.id === 'forwardModal') {
-                document.getElementById('forwardModal').classList.remove('active');
-            }
-        });
-
-        document.getElementById('forwardFile').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                if (file.size > 5 * 1024 * 1024) {
-                    document.getElementById('fileInfo').textContent = 'Error: File too large (max 5MB)';
-                    e.target.value = '';
-                } else {
-                    document.getElementById('fileInfo').textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-                }
-            }
-        });
-
-        document.getElementById('forwardSubmitBtn').addEventListener('click', async () => {
-            const title = document.getElementById('forwardTitle').value;
-            const description = document.getElementById('forwardDescription').value;
-            const forwardTo = document.getElementById('forwardTo').value;
-            const dueDate = document.getElementById('forwardDueDate').value;
-            const file = document.getElementById('forwardFile').files[0];
-            const errorDiv = document.getElementById('forwardError');
-            errorDiv.classList.add('hidden');
-
-            if (!title || !description || !forwardTo) {
-                errorDiv.textContent = 'Please fill in all required fields';
-                errorDiv.classList.remove('hidden');
-                return;
-            }
-
-            try {
-                const data = { title, description, forwardTo, dueDate };
-
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = async (e) => {
-                        data.fileData = e.target.result.split(',')[1];
-                        data.fileType = file.type;
-                        data.fileName = file.name;
-                        await forwardTask(state.forwardingTaskId, state.forwardType, data);
-                        document.getElementById('forwardModal').classList.remove('active');
-                        await loadPhases();
-                        await loadForwardedItems();
-                        renderDashboard();
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    await forwardTask(state.forwardingTaskId, state.forwardType, data);
-                    document.getElementById('forwardModal').classList.remove('active');
-                    await loadPhases();
-                    await loadForwardedItems();
-                    renderDashboard();
-                }
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-            }
-        });
-
-        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('newUsername').value;
-            const displayName = document.getElementById('newDisplayName').value;
-            const role = document.getElementById('newRole').value;
-            const email = document.getElementById('newEmail').value;
-
-            try {
-                await createUser(username, displayName, role, email);
-                document.getElementById('createUserForm').reset();
-                await loadUsers();
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        });
-
-        // Populate forward users dropdown on modal open
-        document.getElementById('forwardModal').addEventListener('click', () => {
-            if (!document.getElementById('forwardModal').classList.contains('active')) return;
-        });
-
-        const forwardModal = document.getElementById('forwardModal');
-        const originalForwardModalClick = forwardModal.onclick;
-
-        new MutationObserver(() => {
-            if (forwardModal.classList.contains('active')) {
-                const select = document.getElementById('forwardTo');
-                if (!select.dataset.populated) {
-                    select.innerHTML = '<option value="">Select person...</option>';
-                    state.users.forEach(user => {
-                        const option = document.createElement('option');
-                        option.value = user.username;
-                        option.textContent = user.displayName;
-                        select.appendChild(option);
-                    });
-                    select.dataset.populated = 'true';
-                }
-            }
-        }).observe(forwardModal, { attributes: true, attributeFilter: ['class'] });
-
-        // Populate login dropdown from public API
-        async function populateLoginDropdown() {
-            try {
-                const resp = await fetch('/api/users/public');
-                const data = await resp.json();
-                const select = document.getElementById('username');
-                // Keep the placeholder option
-                const placeholder = select.querySelector('option');
-                select.innerHTML = '';
-                select.appendChild(placeholder);
-                // Build account list for hint
-                const names = [];
-                (data.users || []).forEach(u => {
-                    const opt = document.createElement('option');
-                    opt.value = u.username;
-                    opt.textContent = u.display_name + ' (' + u.username + ')';
-                    select.appendChild(opt);
-                    names.push(u.username);
+                const res = await fetch('/api/users');
+                const data = await res.json();
+                
+                const container = document.getElementById('usersContainer');
+                container.innerHTML = '';
+                
+                data.users.forEach(user => {
+                    const config = ROLE_CONFIG[user.role];
+                    const card = document.createElement('div');
+                    card.className = 'bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between';
+                    card.innerHTML = `
+                        <div>
+                            <p class="font-semibold text-gray-900">${user.display_name}</p>
+                            <p class="text-sm text-gray-600">${user.username}</p>
+                            <div class="inline-block mt-2 px-2 py-1 rounded text-xs font-medium" style="background-color: ${config.color}20; color: ${config.color};">
+                                ${config.label}
+                            </div>
+                        </div>
+                        <button onclick="resetUserPassword(${user.id})" class="px-3 py-1 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 transition">
+                            Reset Password
+                        </button>
+                    `;
+                    container.appendChild(card);
                 });
-                const accountsEl = document.getElementById('accountsList');
-                if (accountsEl && names.length) accountsEl.textContent = names.join(' · ');
-            } catch (e) { console.error('Could not load users for dropdown:', e); }
+            } catch (e) {
+                console.error('Failed to load users:', e);
+            }
         }
-
-        // Initialize
-        showLoginScreen();
-        populateLoginDropdown();
+        
+        async function resetUserPassword(userId) {
+            if (!confirm('Reset password for this user?')) return;
+            
+            try {
+                await fetch(`/api/users/${userId}/reset-password`, { method: 'POST' });
+                alert('Password reset. User will be prompted to change it on next login.');
+                await loadUsers();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+        
+        function showCreateUserForm() {
+            document.getElementById('modalTitle').textContent = 'Create New User';
+            document.getElementById('modalContent').innerHTML = `
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <input type="text" id="newUserUsername" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                        <input type="text" id="newUserDisplayName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="newUserEmail" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                        <select id="newUserRole" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="admin">System Administrator</option>
+                            <option value="registrar">Registrar</option>
+                            <option value="coe">Controller of Examinations</option>
+                            <option value="vc">Vice Chancellor</option>
+                            <option value="dean">Dean</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            
+            const actionsDiv = document.getElementById('modalActions');
+            actionsDiv.innerHTML = '';
+            
+            const createBtn = document.createElement('button');
+            createBtn.className = 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition';
+            createBtn.textContent = 'Create User';
+            createBtn.onclick = submitCreateUser;
+            actionsDiv.appendChild(createBtn);
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition';
+            closeBtn.textContent = 'Cancel';
+            closeBtn.onclick = () => document.getElementById('genericModal').classList.add('hidden');
+            actionsDiv.appendChild(closeBtn);
+            
+            document.getElementById('genericModal').classList.remove('hidden');
+        }
+        
+        async function submitCreateUser() {
+            const username = document.getElementById('newUserUsername').value;
+            const displayName = document.getElementById('newUserDisplayName').value;
+            const email = document.getElementById('newUserEmail').value;
+            const role = document.getElementById('newUserRole').value;
+            
+            if (!username || !displayName || !email || !role) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, displayName, email, role })
+                });
+                
+                if (!res.ok) throw new Error('Failed to create user');
+                
+                document.getElementById('genericModal').classList.add('hidden');
+                await loadUsers();
+                alert('User created successfully');
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+        
+        function handleSignOut() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            document.getElementById('__app_token').value = '';
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginPassword').value = '';
+            currentUser = null;
+        }
     </script>
 </body>
 </html>
