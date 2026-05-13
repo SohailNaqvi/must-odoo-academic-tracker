@@ -217,6 +217,11 @@ async function initDb() {
   const schema = fs.readFileSync(path.join(__dirname, "db", "schema.sql"), "utf-8");
   db.exec(schema);
   db.exec("PRAGMA foreign_keys = ON;");
+
+  // Migration: add attachment columns to tasks (won't error if already exist)
+  try { db.exec("ALTER TABLE tasks ADD COLUMN file_name TEXT DEFAULT NULL"); } catch(e) {}
+  try { db.exec("ALTER TABLE tasks ADD COLUMN file_data TEXT DEFAULT NULL"); } catch(e) {}
+  try { db.exec("ALTER TABLE tasks ADD COLUMN file_type TEXT DEFAULT NULL"); } catch(e) {}
   saveDb();
 
   // Seed if empty
@@ -322,7 +327,7 @@ app.post("/api/users/:id/reset-password", auth, (req, res) => {
    ══════════════════════════════════════════════════════════ */
 app.get("/api/phases", auth, (req, res) => {
   const phases = allP("SELECT * FROM phases ORDER BY sort_order");
-  const tasks = allP("SELECT * FROM tasks ORDER BY phase_id, sort_order");
+  const tasks = allP("SELECT id, phase_id, label, category, status, section_label, sort_order, completed_date, completed_by, note, file_name, file_type, created_at, updated_at FROM tasks ORDER BY phase_id, sort_order");
   // Group tasks by phase
   const tasksByPhase = {};
   tasks.forEach(t => { if (!tasksByPhase[t.phase_id]) tasksByPhase[t.phase_id] = []; tasksByPhase[t.phase_id].push(t); });
@@ -356,6 +361,32 @@ app.post("/api/tasks/:id/reset", auth, (req, res) => {
   runP("UPDATE tasks SET status = 'not-started', completed_date = NULL, completed_by = NULL, updated_at = datetime('now') WHERE id = ?", [req.params.id]);
   // Also clean up any forwarded items
   runP("DELETE FROM forwarded_items WHERE task_id = ?", [req.params.id]);
+  res.json({ success: true });
+});
+
+/* ══════════════════════════════════════════════════════════
+   TASK FILE ATTACHMENTS (does NOT change task status)
+   ══════════════════════════════════════════════════════════ */
+app.post("/api/tasks/:id/attach", auth, (req, res) => {
+  const { fileName, fileData, fileType } = req.body;
+  if (!fileName || !fileData) return res.status(400).json({ error: "No file provided" });
+  const task = getP("SELECT id FROM tasks WHERE id = ?", [req.params.id]);
+  if (!task) return res.status(404).json({ error: "Task not found" });
+  runP("UPDATE tasks SET file_name = ?, file_data = ?, file_type = ?, updated_at = datetime('now') WHERE id = ?",
+    [fileName, fileData, fileType || null, req.params.id]);
+  runP("INSERT INTO audit_log (user_id, action, entity_type, entity_id, old_value, new_value) VALUES (?,?,?,?,?,?)",
+    [req.user.id, 'file_attach', 'task', task.id, null, fileName]);
+  res.json({ success: true });
+});
+
+app.get("/api/tasks/:id/file", auth, (req, res) => {
+  const task = getP("SELECT file_name, file_data, file_type FROM tasks WHERE id = ?", [req.params.id]);
+  if (!task || !task.file_data) return res.status(404).json({ error: "No file attached" });
+  res.json({ fileName: task.file_name, fileData: task.file_data, fileType: task.file_type });
+});
+
+app.delete("/api/tasks/:id/file", auth, (req, res) => {
+  runP("UPDATE tasks SET file_name = NULL, file_data = NULL, file_type = NULL, updated_at = datetime('now') WHERE id = ?", [req.params.id]);
   res.json({ success: true });
 });
 

@@ -271,6 +271,8 @@ function renderRoadmap(el) {
             <span class="px-2 py-0.5 rounded-full text-xs" style="background:${cat.bg};color:${cat.color};border:1px solid ${cat.border}">${cat.label}</span>`;
           if(canEdit) html += `<select onchange="changeStatus(${t.id},this.value)" class="text-xs border rounded px-1.5 py-1 bg-white"><option value="not-started" ${t.status==='not-started'?'selected':''}>Not Started</option><option value="in-progress" ${t.status==='in-progress'?'selected':''}>In Progress</option><option value="done" ${t.status==='done'?'selected':''}>Done</option></select>`;
           if(canEdit) html += `<button onclick="showForward(${t.id},'${esc(t.label).replace(/'/g,"\\'")}')" class="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">Forward</button>`;
+          if(t.file_name) html += `<button onclick="downloadFile(${t.id},'${esc(t.file_name).replace(/'/g,"\\'")}')" class="text-xs px-2 py-1 bg-green-50 text-green-700 rounded hover:bg-green-100 flex items-center gap-1">📎 ${esc(t.file_name.length>15?t.file_name.substring(0,12)+'...':t.file_name)}</button>`;
+          if(canEdit) html += `<button onclick="attachFile(${t.id})" class="text-xs px-2 py-1 bg-gray-50 text-gray-600 rounded hover:bg-gray-100 border border-gray-200">${t.file_name?'Replace':'Attach'}</button>`;
           if(user.role==='admin') html += `<button onclick="resetTask(${t.id})" class="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100">Reset</button>`;
           if(t.completed_by) html += `<span class="text-xs text-gray-400">${esc(t.completed_by)}</span>`;
           html += `</div>`;
@@ -296,6 +298,44 @@ async function resetTask(taskId) {
   if(!confirm('Reset this task?')) return;
   try { await api(`/api/tasks/${taskId}/reset`,{method:'POST'}); await loadData(); }
   catch(e) { alert('Error: '+e.message); }
+}
+
+function attachFile(taskId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.zip';
+  input.onchange = async(e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    if(file.size > 5*1024*1024) { alert('File too large. Max 5MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = async() => {
+      try {
+        await api(`/api/tasks/${taskId}/attach`,{method:'POST',body:JSON.stringify({
+          fileName: file.name,
+          fileData: reader.result.split(',')[1], // base64 without prefix
+          fileType: file.type
+        })});
+        await loadData();
+      } catch(ex) { alert('Upload failed: '+ex.message); }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+async function downloadFile(taskId, fileName) {
+  try {
+    const d = await api(`/api/tasks/${taskId}/file`);
+    const byteChars = atob(d.fileData);
+    const byteArr = new Uint8Array(byteChars.length);
+    for(let i=0;i<byteChars.length;i++) byteArr[i]=byteChars.charCodeAt(i);
+    const blob = new Blob([byteArr], {type: d.fileType||'application/octet-stream'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = d.fileName||fileName; a.click();
+    URL.revokeObjectURL(url);
+  } catch(ex) { alert('Download failed: '+ex.message); }
 }
 
 function showForward(taskId, label) {
