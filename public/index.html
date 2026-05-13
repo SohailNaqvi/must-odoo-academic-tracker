@@ -158,68 +158,95 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background: linear-gradient(135deg, var(--navy) 0%, rgba(27, 58, 92, 0.8) 100%);
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e8edf2 0%, #d5dde6 50%, #c4cfd9 100%);
         }
 
         .login-box {
             background: var(--white);
-            padding: 3rem;
-            border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 2.5rem 2.5rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
+            text-align: center;
+        }
+
+        .login-logo {
+            display: block;
+            max-width: 300px;
+            margin: 0 auto 1.2rem;
         }
 
         .login-box h1 {
             color: var(--navy);
-            margin-bottom: 0.5rem;
-            font-size: 1.8rem;
+            margin-bottom: 0.25rem;
+            font-size: 1.1rem;
+            font-weight: 700;
         }
 
         .login-box .subtitle {
             color: var(--dark-gray);
-            margin-bottom: 2rem;
-            font-size: 0.9rem;
+            margin-bottom: 1.8rem;
+            font-size: 0.85rem;
+        }
+
+        .login-form-card {
+            background: var(--white);
+            border: 1px solid var(--medium-gray);
+            border-radius: 14px;
+            padding: 1.5rem;
+            text-align: left;
         }
 
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.2rem;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
-            color: var(--navy);
+            margin-bottom: 0.4rem;
+            color: #6b7280;
             font-weight: 500;
+            font-size: 0.85rem;
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group select {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--medium-gray);
-            border-radius: 4px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
+            padding: 0.7rem 0.85rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fff;
+            color: #333;
+            font-family: inherit;
         }
 
-        .form-group input:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: var(--gold);
-            box-shadow: 0 0 0 3px rgba(232, 121, 43, 0.1);
+            box-shadow: 0 0 0 3px rgba(232, 121, 43, 0.12);
         }
 
         .login-btn {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.7rem;
             background-color: var(--gold);
             color: white;
             border: none;
-            border-radius: 4px;
-            font-size: 1rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.2s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-family: inherit;
         }
 
         .login-btn:hover {
@@ -227,8 +254,34 @@
         }
 
         .login-btn:disabled {
-            background-color: var(--medium-gray);
+            opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .login-accounts {
+            margin-top: 1.2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f0f0f0;
+            text-align: center;
+            font-size: 0.78rem;
+            color: #9ca3af;
+        }
+
+        .login-accounts strong {
+            display: block;
+            color: #6b7280;
+            margin-bottom: 0.3rem;
+        }
+
+        .login-accounts .pw-hint {
+            display: inline-block;
+            margin-top: 0.35rem;
+            font-family: monospace;
+            background: #fef3e8;
+            color: var(--gold);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
         }
 
         .error-message {
@@ -947,20 +1000,31 @@
     <!-- Login Screen -->
     <div id="loginScreen" class="login-container">
         <div class="login-box">
-            <h1>MUST Tracker</h1>
-            <p class="subtitle">Odoo Academic Implementation</p>
-            <div id="loginError" class="error-message hidden"></div>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required>
+            <!-- MUST Logo -->
+            <img class="login-logo" src="https://must.edu.pk/wp-content/uploads/2023/06/MUST-Logo-1.png" alt="Multan University of Science and Technology" onerror="this.style.display='none'">
+            <h1>Odoo Academic Implementation Tracker</h1>
+            <p class="subtitle">Multan University of Science and Technology</p>
+            <div class="login-form-card">
+                <div id="loginError" class="error-message hidden"></div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <select id="username" name="username" required>
+                            <option value="" disabled selected>✔ Select a user...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Enter your password">
+                    </div>
+                    <button type="submit" class="login-btn">→ Sign In</button>
+                </form>
+                <div class="login-accounts">
+                    <strong>Available accounts:</strong>
+                    <span id="accountsList">admin · registrar · coe · vc · dean</span>
+                    <br>Default password: <span class="pw-hint">must2026</span>
                 </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <button type="submit" class="login-btn">Login</button>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -1964,8 +2028,33 @@
             }
         }).observe(forwardModal, { attributes: true, attributeFilter: ['class'] });
 
+        // Populate login dropdown from public API
+        async function populateLoginDropdown() {
+            try {
+                const resp = await fetch('/api/users/public');
+                const data = await resp.json();
+                const select = document.getElementById('username');
+                // Keep the placeholder option
+                const placeholder = select.querySelector('option');
+                select.innerHTML = '';
+                select.appendChild(placeholder);
+                // Build account list for hint
+                const names = [];
+                (data.users || []).forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.username;
+                    opt.textContent = u.display_name + ' (' + u.username + ')';
+                    select.appendChild(opt);
+                    names.push(u.username);
+                });
+                const accountsEl = document.getElementById('accountsList');
+                if (accountsEl && names.length) accountsEl.textContent = names.join(' · ');
+            } catch (e) { console.error('Could not load users for dropdown:', e); }
+        }
+
         // Initialize
         showLoginScreen();
+        populateLoginDropdown();
     </script>
 </body>
 </html>

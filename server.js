@@ -267,6 +267,12 @@ function auth(req, res, next) {
 /* ══════════════════════════════════════════════════════════
    AUTH ROUTES
    ══════════════════════════════════════════════════════════ */
+// Public endpoint for login dropdown (no auth required)
+app.get("/api/users/public", (req, res) => {
+  const users = allP("SELECT username, display_name, role FROM users WHERE active = 1 ORDER BY display_name");
+  res.json({ users });
+});
+
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: "Username and password required" });
