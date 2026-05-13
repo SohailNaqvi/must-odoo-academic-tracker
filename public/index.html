@@ -280,10 +280,10 @@
             // Set up fetch interception for auth token
             interceptFetch();
             
-            // Load available users
+            // Load available users for dropdown
             await loadAvailableUsers();
             
-            // Check if already logged in (validate token by calling API)
+            // Check if already logged in (validate token against API)
             const token = localStorage.getItem('authToken');
             if (token) {
                 document.getElementById('__app_token').value = token;
@@ -292,16 +292,16 @@
                         headers: { 'Authorization': 'Bearer ' + token }
                     });
                     if (testRes.ok) {
-                        const user = JSON.parse(localStorage.getItem('currentUser'));
-                        if (user) {
+                        const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                        if (user && !user.mustChangePassword) {
                             currentUser = user;
                             showApp();
                             await loadRoadmap();
                             return;
                         }
                     }
-                } catch (e) {}
-                // Token invalid or expired — clear and show login
+                } catch (e) { /* token validation failed */ }
+                // Token invalid, expired, or user must change password — force fresh login
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('currentUser');
                 document.getElementById('__app_token').value = '';
@@ -313,14 +313,21 @@
             window.fetch = function(...args) {
                 const url = args[0];
                 const options = args[1] || {};
+                options.headers = options.headers || {};
                 
-                // Add token to Authorization header if not GET request to public endpoint
-                if (document.getElementById('__app_token').value && !url.includes('/api/users/public') && !url.includes('/api/login')) {
-                    options.headers = options.headers || {};
-                    options.headers['Authorization'] = 'Bearer ' + document.getElementById('__app_token').value;
+                // Add token to all authenticated requests
+                const tokenEl = document.getElementById('__app_token');
+                if (tokenEl && tokenEl.value && !url.includes('/api/users/public') && !url.includes('/api/login')) {
+                    options.headers['Authorization'] = 'Bearer ' + tokenEl.value;
                 }
                 
-                return originalFetch.apply(this, [url, options]);
+                // Ensure Content-Type for POST/PUT with body
+                if (options.body && !options.headers['Content-Type']) {
+                    options.headers['Content-Type'] = 'application/json';
+                }
+                
+                args[1] = options;
+                return originalFetch.apply(this, args);
             };
         }
         
@@ -442,7 +449,7 @@
         async function loadRoadmap() {
             try {
                 const res = await fetch('/api/phases');
-                if (res.status === 401) { logout(); return; }
+                if (res.status === 401) { handleSignOut(); return; }
                 const data = await res.json();
                 
                 allPhases = data.phases;
