@@ -358,7 +358,7 @@
                 showApp();
                 
                 // Check if password change is needed
-                if (currentUser.force_change_password) {
+                if (currentUser.mustChangePassword) {
                     document.getElementById('forcePasswordModal').classList.remove('hidden');
                 } else {
                     await loadRoadmap();
@@ -375,8 +375,9 @@
             // Update user info
             const config = ROLE_CONFIG[currentUser.role];
             document.getElementById('userBadge').style.backgroundColor = config.color;
-            document.getElementById('userBadge').textContent = currentUser.display_name.charAt(0).toUpperCase();
-            document.getElementById('userDisplayName').textContent = currentUser.display_name;
+            const dName = currentUser.displayName || currentUser.display_name || currentUser.username;
+            document.getElementById('userBadge').textContent = dName.charAt(0).toUpperCase();
+            document.getElementById('userDisplayName').textContent = dName;
             document.getElementById('userRole').textContent = config.label;
             
             // Show users tab if admin
@@ -409,7 +410,7 @@
                 if (!res.ok) throw new Error('Failed to change password');
                 
                 document.getElementById('forcePasswordModal').classList.add('hidden');
-                currentUser.force_change_password = false;
+                currentUser.mustChangePassword = false;
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 
                 await loadRoadmap();
