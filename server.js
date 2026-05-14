@@ -322,6 +322,19 @@ app.post("/api/users/:id/reset-password", auth, (req, res) => {
   res.json({ success: true });
 });
 
+app.delete("/api/users/:id", auth, (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+  const targetId = parseInt(req.params.id);
+  if (targetId === req.user.id) return res.status(400).json({ error: "Cannot remove yourself" });
+  const target = getP("SELECT id, username FROM users WHERE id = ?", [targetId]);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  // Deactivate rather than hard-delete (preserves audit trail)
+  runP("UPDATE users SET active = 0 WHERE id = ?", [targetId]);
+  runP("INSERT INTO audit_log (user_id, action, entity_type, entity_id, old_value, new_value) VALUES (?,?,?,?,?,?)",
+    [req.user.id, 'user_deactivated', 'user', targetId, target.username, 'inactive']);
+  res.json({ success: true });
+});
+
 /* ══════════════════════════════════════════════════════════
    PHASES & TASKS
    ══════════════════════════════════════════════════════════ */
